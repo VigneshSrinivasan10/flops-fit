@@ -1,0 +1,29 @@
+# Visualizer Configuration
+# ========================
+# Settings for generating scaling law plots
+
+# Path settings
+paths:
+  # Input results from training
+  results: outputs/results.json
+  # Input analysis (for fitted curves)
+  analysis: outputs/analysis/scaling_laws.json
+  # Output directory for plots
+  plots: outputs/plots
+
+# Plot settings
+plots:
+  # Style: "paper" (publication) or "notebook" (exploration)
+  style: paper
+  # Show plots interactively
+  show: false
+  # Output format
+  format: png
+  # DPI for saved figures
+  dpi: 300
+
+# Hydra settings
+hydra:
+  run:
+    dir: .
+  output_subdir: null

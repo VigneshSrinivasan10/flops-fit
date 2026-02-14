@@ -1,0 +1,55 @@
+# Scaling Law Analyzer Configuration
+# ===================================
+# Settings for fitting power laws to experiment results
+#
+# OPTIMIZED FOR: CPU-scale experiments (1e12 - 1e15 FLOPs)
+
+# Path settings
+paths:
+  results: outputs/results.json
+  analysis: outputs/analysis
+
+# Target compute budget for prediction
+# After fitting scaling law on small runs, extrapolate to this budget
+target_compute: 1e15  # Max feasible on this CPU
+
+# Fitting settings
+fitting:
+  # Method for finding N_opt per budget
+  # - empirical: Pick run with lowest loss (robust)
+  # - quadratic: Fit parabola to (log N, loss), find vertex (smoother)
+  method: empirical
+  
+  # Minimum R² to accept power law fit
+  min_r_squared: 0.85
+  
+  # Use robust regression (less sensitive to outliers)
+  robust: true
+  
+  # Enforce monotonicity: N_opt should increase with C
+  enforce_monotonic: true
+
+# Validation settings
+validation:
+  # Leave-one-out cross-validation
+  leave_one_out: true
+  
+  # Expected scaling exponent (Chinchilla: a ≈ 0.5)
+  expected_exponent: 0.5
+  # Warn if fitted exponent deviates more than this
+  exponent_tolerance: 0.15
+
+# Output settings
+output:
+  # Save fitted parameters
+  save_fit: true
+  # Save per-budget analysis
+  save_isoflops: true
+  # Generate architecture recommendations
+  generate_configs: true
+
+# Hydra settings
+hydra:
+  run:
+    dir: .
+  output_subdir: null

@@ -1,0 +1,61 @@
+# Sweep Planner Configuration
+# ===========================
+# Settings for generating IsoFLOPs sweep configurations
+#
+# OPTIMIZED FOR: AMD Ryzen 7 5825U (8 cores, 30GB RAM, no GPU)
+# Dataset: TinyStories (~470M tokens)
+
+# Compute budget settings (CPU-scale)
+compute:
+  # Minimum compute budget (FLOPs) - ~5min training
+  min_flops: 1e12
+  # Maximum compute budget (FLOPs) - ~4hr training
+  max_flops: 3e14
+  # Number of compute budgets to sample (log-spaced)
+  # Using: 1e12, 3e12, 1e13, 3e13, 1e14, 3e14
+  num_budgets: 6
+  # Number of model sizes to try per compute budget
+  # More = better curve fitting, but more time
+  num_model_sizes: 8
+
+# Model size constraints (CPU-feasible)
+model:
+  # Minimum model size (parameters) - tiny but learnable
+  min_size: 500_000  # 500K
+  # Maximum model size (parameters) - largest feasible on CPU
+  max_size: 50_000_000  # 50M
+  # Typical configs for small models:
+  #   500K:  layers=4,  d_model=128,  heads=4
+  #   1M:    layers=4,  d_model=192,  heads=4
+  #   3M:    layers=6,  d_model=256,  heads=4
+  #   10M:   layers=8,  d_model=384,  heads=6
+  #   30M:   layers=12, d_model=512,  heads=8
+  #   50M:   layers=16, d_model=576,  heads=8
+
+# Architecture constraints
+architecture:
+  # Model dimension must be divisible by num_heads
+  d_model_multiple: 64
+  # Layer range
+  min_layers: 2
+  max_layers: 16
+  # Head count options
+  head_options: [2, 4, 6, 8]
+
+# Learning rate scaling (per model size)
+# Smaller models can use higher LR
+lr_schedule:
+  base_lr: 3.0e-4
+  # LR scales as: base_lr * (base_size / model_size) ^ lr_power
+  base_size: 10_000_000  # 10M
+  lr_power: 0.1  # Mild scaling
+
+# Output settings
+output:
+  sweep_path: outputs/sweep.json
+
+# Hydra settings
+hydra:
+  run:
+    dir: .
+  output_subdir: null
