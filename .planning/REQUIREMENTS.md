@@ -1,7 +1,7 @@
 # Requirements: flops-fit
 
 **Defined:** 2026-02-15
-**Core Value:** Given a compute budget, tell the user exactly how big their model should be and how much data to train on — for their specific architecture and dataset.
+**Core Value:** Given a compute budget, tell the user exactly how big their model should be and how much data to train on -- for their specific architecture and dataset.
 
 ## v1 Requirements
 
@@ -75,32 +75,32 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PLUG-01 | — | Pending |
-| PLUG-02 | — | Pending |
-| PLUG-03 | — | Pending |
-| PLUG-04 | — | Pending |
-| PLUG-05 | — | Pending |
-| PLUG-06 | — | Pending |
-| IMG-01 | — | Pending |
-| IMG-02 | — | Pending |
-| IMG-03 | — | Pending |
-| ANLZ-01 | — | Pending |
-| ANLZ-02 | — | Pending |
-| TRAIN-01 | — | Pending |
-| TRAIN-02 | — | Pending |
-| EXIST-01 | — | Pending |
-| EXIST-02 | — | Pending |
-| EXIST-03 | — | Pending |
-| EXIST-04 | — | Pending |
-| EXIST-05 | — | Pending |
-| EXIST-06 | — | Pending |
-| EXIST-07 | — | Pending |
+| PLUG-01 | Phase 2 | Pending |
+| PLUG-02 | Phase 2 | Pending |
+| PLUG-03 | Phase 2 | Pending |
+| PLUG-04 | Phase 2 | Pending |
+| PLUG-05 | Phase 3 | Pending |
+| PLUG-06 | Phase 2 | Pending |
+| IMG-01 | Phase 6 | Pending |
+| IMG-02 | Phase 6 | Pending |
+| IMG-03 | Phase 6 | Pending |
+| ANLZ-01 | Phase 5 | Pending |
+| ANLZ-02 | Phase 5 | Pending |
+| TRAIN-01 | Phase 7 | Pending |
+| TRAIN-02 | Phase 8 | Pending |
+| EXIST-01 | Phase 1 | Pending |
+| EXIST-02 | Phase 1 | Pending |
+| EXIST-03 | Phase 1 | Pending |
+| EXIST-04 | Phase 1 | Pending |
+| EXIST-05 | Phase 1 | Pending |
+| EXIST-06 | Phase 1 | Pending |
+| EXIST-07 | Phase 1 | Pending |
 
 **Coverage:**
 - v1 requirements: 20 total
-- Mapped to phases: 0
-- Unmapped: 20
+- Mapped to phases: 20
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-15*
-*Last updated: 2026-02-15 after initial definition*
+*Last updated: 2026-02-15 after roadmap creation*
