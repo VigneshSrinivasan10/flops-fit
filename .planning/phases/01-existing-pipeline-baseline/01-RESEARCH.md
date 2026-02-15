@@ -102,6 +102,7 @@ def sweep_json(tmp_path, sample_sweep_configs):
 ### Pattern 3: Testing Hydra main() Functions
 **What:** Use `hydra.initialize_config_dir` + `hydra.compose` to test Hydra-decorated functions without subprocess invocation.
 **When to use:** Testing the CLI entry points that use `@hydra.main`.
+**Source:** [Hydra Unit Testing docs](https://hydra.cc/docs/advanced/unit_testing/) and [Hydra example tests](https://github.com/facebookresearch/hydra/blob/main/examples/advanced/hydra_app_example/tests/test_example.py)
 **Example:**
 ```python
 from hydra import compose, initialize_config_dir
@@ -130,7 +131,12 @@ def test_planner_main_produces_sweep_json(tmp_path):
     assert (tmp_path / "sweep.json").exists()
 ```
 
-**Important Hydra testing note:** Hydra's `@hydra.main` decorator changes the working directory by default. The project configs set `hydra.run.dir: .` to prevent this, but tests should still use `initialize_config_dir` + `compose` rather than calling `main()` directly to avoid Hydra's global state issues. Each test using Hydra config composition must use the `initialize_config_dir` context manager, which handles cleanup.
+**Important Hydra testing notes (verified via official docs):**
+- The official approach is `initialize()` or `initialize_config_dir()` + `compose()` as context managers.
+- Hydra's `@hydra.main` decorator changes the working directory by default. The project configs set `hydra.run.dir: .` to prevent this.
+- Tests should use `initialize_config_dir` + `compose` rather than calling `main()` directly to avoid Hydra's global state issues.
+- Each test using Hydra config composition must use the context manager form which handles cleanup automatically.
+- The `initialize_config_module` variant uses absolute module references (e.g., `config_module="flops_fit.conf"`) making tests relocatable. Either approach works for this project.
 
 ### Pattern 4: Seeded Mock Training Tests
 **What:** Seed numpy random state before mock training to get deterministic results.
@@ -148,11 +154,31 @@ def test_mock_train_produces_reasonable_loss(self):
     assert time > 0
 ```
 
+### Pattern 5: Matplotlib Testing in Headless Environments
+**What:** Set the non-interactive Agg backend and clean up figure state between tests.
+**When to use:** All visualizer tests.
+**Source:** [matplotlib testing docs](https://matplotlib.org/stable/api/testing_api.html)
+**Example:**
+```python
+# In conftest.py or at top of test_visualizer.py
+import matplotlib
+matplotlib.use("Agg")  # Must be before importing pyplot
+
+import matplotlib.pyplot as plt
+
+@pytest.fixture(autouse=True)
+def cleanup_matplotlib():
+    """Reset matplotlib state between tests."""
+    yield
+    plt.close("all")
+```
+
 ### Anti-Patterns to Avoid
 - **Testing Hydra main() via subprocess:** Slow, fragile, hard to debug. Use `initialize_config_dir` + `compose` instead.
 - **Asserting exact float values from mock training:** The mock uses random noise; assert ranges, not exact values.
 - **Testing matplotlib rendering quality:** Just check files exist and have nonzero size. Image comparison testing is fragile across environments.
 - **Fixing bugs in tests:** Phase 1 characterizes behavior, not fixes. Mark known issues with comments but assert current behavior.
+- **Mutating plt.rcParams without cleanup:** The visualizer's `_setup_style` changes global matplotlib state. Use `plt.rcdefaults()` or `plt.rc_context()` in test cleanup.
 
 ## Don't Hand-Roll
 
@@ -175,7 +201,7 @@ def test_mock_train_produces_reasonable_loss(self):
 ### Pitfall 2: Matplotlib Backend Issues in CI/Tests
 **What goes wrong:** `plt.show()` or interactive backends cause tests to hang or crash in headless environments.
 **Why it happens:** Default matplotlib backend may be Tk/Qt which requires display.
-**How to avoid:** Use `matplotlib.use("Agg")` at the top of test files or in `conftest.py`. The visualizer code already doesn't call `plt.show()` by default (controlled by config), but `_setup_style` mutates global `plt.rcParams`.
+**How to avoid:** Use `matplotlib.use("Agg")` at the top of test files or in `conftest.py` before importing `pyplot`. The visualizer code already doesn't call `plt.show()` by default (controlled by config), but `_setup_style` mutates global `plt.rcParams`.
 **Warning signs:** Tests hang indefinitely or fail with "no display" errors.
 
 ### Pitfall 3: Working Directory Changes from Hydra
@@ -195,6 +221,12 @@ def test_mock_train_produces_reasonable_loss(self):
 **Why it happens:** `np.round(np.log10(value), 2)` is sensitive to floating-point representation of log values.
 **How to avoid:** Use compute budgets that are exact powers of 10 (1e17, 1e18, etc.) in test data to ensure clean bucket boundaries.
 **Warning signs:** Test produces different number of optimal points on different platforms.
+
+### Pitfall 6: TrainingRunner Constructor Creates Directories
+**What goes wrong:** `TrainingRunner.__init__` calls `self.output_dir.mkdir(parents=True, exist_ok=True)`. If tests use a non-tmp_path output directory, they create persistent directories.
+**Why it happens:** The constructor has a side effect of creating the output directory.
+**How to avoid:** Always pass `output_dir=tmp_path` or a subdirectory of `tmp_path` when constructing `TrainingRunner` in tests.
+**Warning signs:** Stale directories appearing in the project root after test runs.
 
 ## Code Examples
 
@@ -329,6 +361,24 @@ def test_full_pipeline_mock_mode(tmp_path):
     assert (tmp_path / "plots" / "tokens_per_param.png").exists()
 ```
 
+### Example 5: Testing Hydra Config Composition
+```python
+from hydra import compose, initialize_config_module
+
+def test_planner_config_loads_with_overrides():
+    """Verify planner YAML loads and overrides work."""
+    with initialize_config_module(version_base=None, config_module="flops_fit.conf"):
+        cfg = compose(config_name="planner", overrides=[
+            "compute.min_flops=1e15",
+            "compute.num_budgets=3",
+        ])
+        assert cfg.compute.min_flops == 1e15
+        assert cfg.compute.num_budgets == 3
+        # Default values preserved
+        assert cfg.compute.num_model_sizes == 8
+        assert cfg.output.sweep_path == "outputs/sweep.json"
+```
+
 ## Codebase-Specific Testing Concerns
 
 ### What Must Be Tested (from CONCERNS.md audit)
@@ -337,18 +387,18 @@ def test_full_pipeline_mock_mode(tmp_path):
 |--------|-------------------|----------|
 | `trainer.py` | `run_sweep`, resume logic, mock train, `load_sweep` | HIGH |
 | `model.py` | Forward pass, loss computation, u-mup init, param counting | HIGH |
-| `visualizer.py` | Plot generation, file output, data loading | MEDIUM |
 | `analyzer.py` | `analyze()`, `predict()`, `find_optimal_per_budget()` | HIGH |
+| `visualizer.py` | Plot generation, file output, data loading | MEDIUM |
 | `planner.py` | `save_sweep()` file I/O | MEDIUM |
 | Pipeline | End-to-end plan->train->analyze->visualize | MEDIUM |
 | Hydra CLI | Config loading, overrides, preset loading | LOW |
 
 ### Known Bugs to Characterize (Not Fix)
 
-1. **Bucket rounding mismatch:** Analyzer uses 2-decimal rounding, visualizer uses 1-decimal. Write tests that document both behaviors.
-2. **Unseeded mock randomness:** `_mock_train` ignores `trainer.seed`. Tests should seed manually and document the gap.
-3. **`create_model_for_scaling` parameter overshoot:** Uses `12*L*d^2` approximation but actual is `16*L*d^2`. Write a test that documents the actual vs approximate ratio.
-4. **Stale `sl-*` command names in docstrings:** Not testable directly but worth noting in test comments.
+1. **Bucket rounding mismatch:** Analyzer uses 2-decimal rounding (`np.round(..., 2)` at `analyzer.py:175`), visualizer uses 1-decimal (`np.round(..., 1)` at `visualizer.py:135,216,301`). Write tests that document both behaviors.
+2. **Unseeded mock randomness:** `_mock_train` uses `np.random.normal` and `np.random.uniform` without seeding (`trainer.py:147-158`). `trainer.seed: 42` in config is never applied. Tests should seed manually and document the gap.
+3. **`create_model_for_scaling` parameter overshoot:** Uses `12*L*d^2` approximation (`model.py:493-494`) but actual per-layer params are `16*d^2` (4*d^2 attention + 12*d^2 SwiGLU FFN). Write a test that documents the actual vs approximate ratio.
+4. **Stale `sl-*` command names in docstrings:** Module docstrings reference old command names (`sl-plan` etc.) while actual entry points are `ff-plan` etc. Not directly testable but worth noting in comments.
 
 ### JSON Schema Contracts Between Stages
 
@@ -356,9 +406,9 @@ The pipeline relies on implicit JSON schemas for inter-stage communication. Test
 
 | Stage Output | Key Fields | Consumed By |
 |-------------|------------|-------------|
-| `sweep.json` | `experiment_id`, `compute_budget`, `model_size`, `num_tokens` | TrainingRunner.load_sweep |
-| `results.json` | Above + `final_loss`, `actual_flops`, `wall_time_seconds`, `status`, `timestamp`, `error_message` | ScalingLawAnalyzer.load_results, ScalingVisualizer.load_data |
-| `scaling_laws.json` | `n_opt_fit.{coefficient_k, exponent_a, r_squared}`, same for `d_opt_fit`, `l_opt_fit`, `optimal_points`, `optimal_ratio` | ScalingVisualizer.load_data, ScalingLawAnalyzer.predict |
+| `sweep.json` | `experiment_id`, `compute_budget`, `model_size`, `num_tokens` | `TrainingRunner.load_sweep` |
+| `results.json` | Above + `final_loss`, `actual_flops`, `wall_time_seconds`, `status`, `timestamp`, `error_message` | `ScalingLawAnalyzer.load_results`, `ScalingVisualizer.load_data` |
+| `scaling_laws.json` | `n_opt_fit.{coefficient_k, exponent_a, r_squared}`, same for `d_opt_fit`, `l_opt_fit`, `optimal_points`, `optimal_ratio` | `ScalingVisualizer.load_data`, `ScalingLawAnalyzer.predict` |
 
 ## State of the Art
 
@@ -371,7 +421,7 @@ The pipeline relies on implicit JSON schemas for inter-stage communication. Test
 ## Open Questions
 
 1. **Should Hydra main() functions be tested directly or only the underlying classes?**
-   - What we know: Testing `@hydra.main` decorated functions is awkward due to global state. The project separates logic into classes that can be tested independently.
+   - What we know: Testing `@hydra.main` decorated functions is awkward due to global state. The Hydra official docs recommend using `initialize` + `compose` to build configs, then calling application logic directly. The project separates logic into classes.
    - Recommendation: Test the classes directly (HIGH priority). Add one or two smoke tests that compose Hydra config to verify wiring (LOW priority). Do not call `main()` directly in tests.
 
 2. **Should tests fix the bucket rounding mismatch or just document it?**
@@ -389,21 +439,23 @@ The pipeline relies on implicit JSON schemas for inter-stage communication. Test
 - `.planning/codebase/CONCERNS.md` - documented bugs and tech debt
 - `.planning/codebase/TESTING.md` - existing test patterns and gaps
 - `.planning/codebase/ARCHITECTURE.md` - pipeline structure and data flow
+- [Hydra Unit Testing docs](https://hydra.cc/docs/advanced/unit_testing/) - verified `initialize` + `compose` pattern
+- [Hydra example tests](https://github.com/facebookresearch/hydra/blob/main/examples/advanced/hydra_app_example/tests/test_example.py) - verified parameterized test pattern and `initialize_config_module` usage
 
 ### Secondary (MEDIUM confidence)
-- Hydra testing patterns: Based on training data knowledge of Hydra 1.3.x API (`initialize_config_dir`, `compose`). The project uses `hydra-core>=1.3.2` which supports these APIs.
-- pytest patterns: Based on training data knowledge of pytest 8.x. The project uses `pytest>=8.0.0`.
+- [matplotlib testing API docs](https://matplotlib.org/stable/api/testing_api.html) - verified Agg backend approach for headless testing
+- Hydra 1.3.x APIs: `initialize_config_dir`, `initialize_config_module`, `compose` all confirmed in current Hydra docs
 
 ### Tertiary (LOW confidence)
-- None. All research is based on direct codebase analysis and well-established testing patterns.
+- None. All research is based on direct codebase analysis and verified official documentation.
 
 ## Metadata
 
 **Confidence breakdown:**
 - Standard stack: HIGH - Already defined in pyproject.toml, no new libraries needed
 - Architecture: HIGH - Based on direct codebase reading and existing test patterns
-- Pitfalls: HIGH - Hydra testing gotchas and matplotlib backend issues are well-known
-- Code examples: HIGH - Based on actual codebase classes and their APIs
+- Pitfalls: HIGH - Hydra testing gotchas verified against official docs, matplotlib backend issues are well-documented
+- Code examples: HIGH - Based on actual codebase classes and their APIs, Hydra patterns verified against official examples
 
 **Research date:** 2026-02-15
 **Valid until:** No expiration (codebase-specific research, not library-version-dependent)
