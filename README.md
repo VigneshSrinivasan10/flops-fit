@@ -13,11 +13,7 @@ This toolkit helps you:
 ## Installation
 
 ```bash
-# Using uv (recommended)
 uv sync
-
-# Or using pip
-pip install -e .
 ```
 
 ## Usage
@@ -27,7 +23,7 @@ pip install -e .
 Generate configurations for multiple model sizes at fixed compute budgets:
 
 ```bash
-uv run ff-plan --help
+ff-plan --help
 ```
 
 ### 2. Run training
@@ -35,7 +31,7 @@ uv run ff-plan --help
 Execute training runs (or mock runs for testing):
 
 ```bash
-uv run ff-train --help
+ff-train --help
 ```
 
 ### 3. Analyze results
@@ -43,7 +39,7 @@ uv run ff-train --help
 Fit power laws and find optimal model sizes:
 
 ```bash
-uv run ff-analyze --help
+ff-analyze --help
 ```
 
 ### 4. Generate visualizations
@@ -51,13 +47,13 @@ uv run ff-analyze --help
 Create IsoFLOPs curves and scaling plots:
 
 ```bash
-uv run ff-visualize --help
+ff-visualize --help
 ```
 
 ### All-in-one
 
 ```bash
-uv run flops-fit
+flops-fit
 ```
 
 ## IsoFLOPs Method
@@ -78,7 +74,7 @@ Configs use [Hydra](https://hydra.cc/) for flexibility. See `src/scaling_laws/co
 
 Example override:
 ```bash
-uv run ff-plan compute.min_flops=1e18 compute.max_flops=1e22
+ff-plan compute.min_flops=1e18 compute.max_flops=1e22
 ```
 
 ## Project Structure
