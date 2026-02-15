@@ -33,11 +33,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. User can run `ff-analyze` on training results and get power law fits with R-squared values
   4. User can run `ff-visualize` and get IsoFLOP curve and scaling law plots saved to disk
   5. All existing CLI commands work with Hydra YAML overrides and presets
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
+- [ ] 01-01-PLAN.md — Shared fixtures, planner save_sweep tests, trainer characterization tests
+- [ ] 01-02-PLAN.md — Analyzer full analysis flow tests, GPT model characterization tests
+- [ ] 01-03-PLAN.md — Visualizer plot tests, full pipeline integration test, Hydra config tests
 
 ### Phase 2: Plugin Protocols and Loading
 **Goal**: Users can define model, data, and loss plugins as Python classes and have them loaded and validated via YAML config
@@ -149,7 +150,7 @@ Note: Phase 5 (Analysis) depends only on Phase 1 and can be executed in parallel
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Existing Pipeline Baseline | 0/TBD | Not started | - |
+| 1. Existing Pipeline Baseline | 0/3 | Planning complete | - |
 | 2. Plugin Protocols and Loading | 0/TBD | Not started | - |
 | 3. GPT Plugin Refactor | 0/TBD | Not started | - |
 | 4. Training Engine | 0/TBD | Not started | - |
