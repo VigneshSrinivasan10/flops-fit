@@ -158,13 +158,13 @@ class SweepPlanner:
         actual_max = min(self.max_model_size, max_feasible)
         
         if actual_max <= actual_min:
-            return np.array([actual_min])
+            return [actual_min]
         
         return np.logspace(
             np.log10(actual_min),
             np.log10(actual_max),
             self.num_model_sizes,
-        ).astype(int)
+        ).astype(int).tolist()
     
     def generate_sweep(self) -> Iterator[ExperimentConfig]:
         """
