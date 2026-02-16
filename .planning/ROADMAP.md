@@ -33,11 +33,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. User can pass a model class + size parameter name + kwargs, and the library creates model instances at different sizes by varying the size parameter
   3. Library validates that the model class exposes `num_params()` and raises a clear error if not
   4. The package is installable via `pip install -e .` with the new library structure
-**Plans**: TBD
+**Plans:** 1 plan
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
+- [ ] 01-01-PLAN.md — Model factory, API stub, contract validation, and tests
 
 ### Phase 2: Dataset and Loss Interfaces
 **Goal**: Users can pass their own dataset and loss function as Python objects
@@ -163,7 +162,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Library Skeleton and Model Interface | 0/TBD | Not started | - |
+| 1. Library Skeleton and Model Interface | 0/1 | Planning complete | - |
 | 2. Dataset and Loss Interfaces | 0/TBD | Not started | - |
 | 3. Sweep Planning | 0/TBD | Not started | - |
 | 4. Training Engine | 0/TBD | Not started | - |
