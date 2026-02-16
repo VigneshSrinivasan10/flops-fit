@@ -62,30 +62,30 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| API-01 | — | Pending |
-| API-02 | — | Pending |
-| API-03 | — | Pending |
-| API-04 | — | Pending |
-| API-05 | — | Pending |
-| API-06 | — | Pending |
-| API-07 | — | Pending |
-| TRAIN-01 | — | Pending |
-| TRAIN-02 | — | Pending |
-| TRAIN-03 | — | Pending |
-| ANLZ-01 | — | Pending |
-| ANLZ-02 | — | Pending |
-| ANLZ-03 | — | Pending |
-| EX-01 | — | Pending |
-| EX-02 | — | Pending |
-| EX-03 | — | Pending |
-| SWEEP-01 | — | Pending |
-| SWEEP-02 | — | Pending |
+| API-01 | Phase 1 | Pending |
+| API-02 | Phase 1 | Pending |
+| API-03 | Phase 2 | Pending |
+| API-04 | Phase 2 | Pending |
+| API-05 | Phase 6 | Pending |
+| API-06 | Phase 6 | Pending |
+| API-07 | Phase 6 | Pending |
+| TRAIN-01 | Phase 4 | Pending |
+| TRAIN-02 | Phase 9 | Pending |
+| TRAIN-03 | Phase 4 | Pending |
+| ANLZ-01 | Phase 5 | Pending |
+| ANLZ-02 | Phase 5 | Pending |
+| ANLZ-03 | Phase 5 | Pending |
+| EX-01 | Phase 7 | Pending |
+| EX-02 | Phase 8 | Pending |
+| EX-03 | Phase 7 | Pending |
+| SWEEP-01 | Phase 3 | Pending |
+| SWEEP-02 | Phase 3 | Pending |
 
 **Coverage:**
 - v1 requirements: 18 total
-- Mapped to phases: 0
-- Unmapped: 18
+- Mapped to phases: 18
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-16*
-*Last updated: 2026-02-16 after library-first pivot*
+*Last updated: 2026-02-16 -- phase mappings added after roadmap creation (library-first pivot)*

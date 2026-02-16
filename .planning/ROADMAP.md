@@ -2,7 +2,7 @@
 
 ## Overview
 
-Transform flops-fit from a hardcoded GPT + TinyStories scaling law pipeline into a pluggable framework where users bring their own model architecture, data loader, and loss function. The journey starts by locking down the existing pipeline with tests, then introduces plugin protocols, refactors GPT as the first plugin, builds a real training engine, improves the analyzer, proves generality with image support, adds multi-GPU training, and finishes with sweep cost estimation and end-to-end polish.
+Transform flops-fit from a hardcoded CLI pipeline (GPT + TinyStories) into a Python library where users pass their own model class, dataset, and loss function to get Chinchilla-style scaling law predictions. The journey builds interfaces first (how users interact with the library), then the engines that execute experiments, then proves generality with two example architectures across text and image modalities.
 
 ## Phases
 
@@ -12,57 +12,55 @@ Transform flops-fit from a hardcoded GPT + TinyStories scaling law pipeline into
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Existing Pipeline Baseline** - Lock down current functionality with tests before refactoring
-- [ ] **Phase 2: Plugin Protocols and Loading** - Define and implement the plugin interface contracts
-- [ ] **Phase 3: GPT Plugin Refactor** - Refactor existing GPT + TinyStories into the first plugin
-- [ ] **Phase 4: Training Engine** - Build a real GPU-aware training loop with Accelerate
-- [ ] **Phase 5: Analysis Improvements** - Fix fitting methodology and add Chinchilla table output
-- [ ] **Phase 6: Image Modality** - Prove plugin generality with ViT + CIFAR
-- [ ] **Phase 7: Multi-GPU Training** - Add data parallelism via Accelerate DDP
-- [ ] **Phase 8: Sweep Cost Estimation and Polish** - Cost prediction and end-to-end validation
+- [ ] **Phase 1: Library Skeleton and Model Interface** - Define package structure, `find_optimal()` signature, and model contract
+- [ ] **Phase 2: Dataset and Loss Interfaces** - Complete the input interfaces for user-provided data and loss
+- [ ] **Phase 3: Sweep Planning** - Generate IsoFLOP experiment grids from compute budgets and model interface
+- [ ] **Phase 4: Training Engine** - GPU-aware training loop consuming the library interfaces
+- [ ] **Phase 5: Analysis and Fitting** - Power law fitting with outlier detection and Chinchilla table output
+- [ ] **Phase 6: Results Object and API Integration** - Wire `find_optimal()` end-to-end with Result object
+- [ ] **Phase 7: GPT + TinyStories Example** - Refactor existing GPT as library example with CLI wrapper
+- [ ] **Phase 8: ViT + CIFAR Example** - Second modality proving architecture-agnostic design
+- [ ] **Phase 9: Multi-GPU Data Parallelism** - Accelerate-based multi-GPU support
 
 ## Phase Details
 
-### Phase 1: Existing Pipeline Baseline
-**Goal**: The existing 4-stage pipeline (plan, train, analyze, visualize) is fully characterized with tests so refactoring cannot silently break it
+### Phase 1: Library Skeleton and Model Interface
+**Goal**: Users can import `flops_fit` and define a model class that the library knows how to scale
 **Depends on**: Nothing (first phase)
-**Requirements**: EXIST-01, EXIST-02, EXIST-03, EXIST-04, EXIST-05, EXIST-06, EXIST-07
+**Requirements**: API-01, API-02
 **Success Criteria** (what must be TRUE):
-  1. User can run `ff-plan` and get a valid sweep plan JSON with configurable compute budgets
-  2. User can run `ff-train` with mock mode and resume a partially completed sweep by experiment ID
-  3. User can run `ff-analyze` on training results and get power law fits with R-squared values
-  4. User can run `ff-visualize` and get IsoFLOP curve and scaling law plots saved to disk
-  5. All existing CLI commands work with Hydra YAML overrides and presets
-**Plans**: 3 plans
+  1. User can `import flops_fit` and see `flops_fit.find_optimal` exists as a callable (stub is fine)
+  2. User can pass a model class + size parameter name + kwargs, and the library creates model instances at different sizes by varying the size parameter
+  3. Library validates that the model class exposes `num_params()` and raises a clear error if not
+  4. The package is installable via `pip install -e .` with the new library structure
+**Plans**: TBD
 
 Plans:
-- [ ] 01-01-PLAN.md — Shared fixtures, planner save_sweep tests, trainer characterization tests
-- [ ] 01-02-PLAN.md — Analyzer full analysis flow tests, GPT model characterization tests
-- [ ] 01-03-PLAN.md — Visualizer plot tests, full pipeline integration test, Hydra config tests
+- [ ] 01-01: TBD
+- [ ] 01-02: TBD
 
-### Phase 2: Plugin Protocols and Loading
-**Goal**: Users can define model, data, and loss plugins as Python classes and have them loaded and validated via YAML config
+### Phase 2: Dataset and Loss Interfaces
+**Goal**: Users can pass their own dataset and loss function as Python objects
 **Depends on**: Phase 1
-**Requirements**: PLUG-01, PLUG-02, PLUG-03, PLUG-04, PLUG-06
+**Requirements**: API-03, API-04
 **Success Criteria** (what must be TRUE):
-  1. User can write a model class with `forward()` and `num_params()` and reference it by import path in YAML config
-  2. User can write a data loader module returning a PyTorch DataLoader and reference it by import path in YAML config
-  3. User can write a loss callable and reference it by import path in YAML config
-  4. Plugin protocol violations (missing methods, wrong signatures) are caught at load time with clear error messages, not hours into a sweep
+  1. User can pass a PyTorch Dataset or DataLoader and the library handles batching and iteration
+  2. User can pass any callable as a loss function and the library uses it during training
+  3. Library validates dataset and loss interfaces at call time with clear error messages (not deep in a training loop)
 **Plans**: TBD
 
 Plans:
 - [ ] 02-01: TBD
 - [ ] 02-02: TBD
 
-### Phase 3: GPT Plugin Refactor
-**Goal**: The existing GPT + TinyStories code works as a plugin through the new protocol system, proving the plugin architecture end-to-end
-**Depends on**: Phase 2
-**Requirements**: PLUG-05
+### Phase 3: Sweep Planning
+**Goal**: Users can see what experiments will run and estimate compute cost before committing GPU hours
+**Depends on**: Phase 1 (needs model interface to size models)
+**Requirements**: SWEEP-01, SWEEP-02
 **Success Criteria** (what must be TRUE):
-  1. User can run the full pipeline (plan, train, analyze, visualize) using `model=gpt dataset=tinystories` config overrides instead of hardcoded imports
-  2. The GPT plugin lives in a `plugins/` directory and follows the same interface any external plugin would use
-  3. Pipeline results (scaling law fits, plots) are identical to pre-refactor baseline within numerical tolerance
+  1. Given compute budgets and a model interface, the library generates an IsoFLOP experiment grid with model sizes and token counts
+  2. User can call a cost estimation method and see total estimated FLOPs across all planned experiments
+  3. Sweep plan is inspectable as a data structure (not just printed output)
 **Plans**: TBD
 
 Plans:
@@ -70,91 +68,107 @@ Plans:
 - [ ] 03-02: TBD
 
 ### Phase 4: Training Engine
-**Goal**: Users can train models on GPU with proper device management, mixed precision, and checkpoint recovery
-**Depends on**: Phase 3
-**Requirements**: (no new requirements -- infrastructure enabling TRAIN-01, IMG-01)
+**Goal**: The library can train models on GPU with automatic device placement and resume interrupted sweeps
+**Depends on**: Phase 1 (model interface), Phase 2 (dataset/loss interfaces), Phase 3 (sweep plan)
+**Requirements**: TRAIN-01, TRAIN-03
 **Success Criteria** (what must be TRUE):
-  1. User can run sweep experiments on GPU and the training loop automatically handles device placement
-  2. User can resume a crashed sweep from the last checkpoint without re-running completed experiments
-  3. Training uses mixed precision (fp16/bf16) when available, with automatic fallback to fp32 on CPU
-  4. The GPT plugin pipeline produces correct scaling law fits when trained on real GPU (not just mock mode)
+  1. Library trains a model on available GPU with automatic device placement (falls back to CPU if no GPU)
+  2. Training loop uses the user-provided dataset and loss function through the library interfaces
+  3. An interrupted sweep can be resumed without re-running completed experiments
+  4. Training results (final loss, actual FLOPs, wall time) are captured per experiment
 **Plans**: TBD
 
 Plans:
 - [ ] 04-01: TBD
 - [ ] 04-02: TBD
+- [ ] 04-03: TBD
 
-### Phase 5: Analysis Improvements
-**Goal**: Users get trustworthy scaling predictions with Chinchilla-style output tables and automatic outlier filtering
-**Depends on**: Phase 1 (operates on results JSON, independent of plugin system)
-**Requirements**: ANLZ-01, ANLZ-02
+### Phase 5: Analysis and Fitting
+**Goal**: The library fits power laws to training results and produces Chinchilla-style predictions
+**Depends on**: Phase 4 (needs training results)
+**Requirements**: ANLZ-01, ANLZ-02, ANLZ-03
 **Success Criteria** (what must be TRUE):
-  1. User can generate a Chinchilla table showing optimal model size (N), data size (D), and predicted loss for a specified range of compute budgets
-  2. Analyzer automatically detects and flags experiments with diverged training or anomalous loss before fitting power laws
-  3. Flagged outliers are excluded from fits by default, with user override to include them
+  1. Library fits N_opt, D_opt, and L_opt vs compute power laws with R-squared values
+  2. Outlier experiments are automatically detected and excluded before fitting
+  3. Chinchilla table output shows optimal N, D, and predicted loss for a range of compute budgets
+  4. Fitting uses linear-space nonlinear least squares (not log-space) with irreducible loss term
 **Plans**: TBD
 
 Plans:
 - [ ] 05-01: TBD
 - [ ] 05-02: TBD
 
-### Phase 6: Image Modality
-**Goal**: Users can run scaling law experiments on image datasets, proving the plugin system is modality-agnostic
-**Depends on**: Phase 4 (needs training engine), Phase 2 (needs plugin system)
-**Requirements**: IMG-01, IMG-02, IMG-03
+### Phase 6: Results Object and API Integration
+**Goal**: `flops_fit.find_optimal()` works end-to-end and returns a Result object with table, plot, and predict methods
+**Depends on**: Phase 3 (sweep planning), Phase 4 (training), Phase 5 (analysis)
+**Requirements**: API-05, API-06, API-07
 **Success Criteria** (what must be TRUE):
-  1. User can run the full pipeline with `model=vit dataset=cifar` and get scaling law fits for image classification
-  2. The ViT + CIFAR example plugin is included as a built-in alongside GPT + TinyStories
-  3. The training loop handles image batches without any modality-specific branching (dict-based batch convention works for both text and images)
-  4. Scaling law plots for image experiments are publication-ready (same quality as text experiments)
+  1. `result.chinchilla_table()` returns a table of optimal N, D, and loss for each compute budget
+  2. `result.plot()` produces scaling law and IsoFLOP visualizations (matplotlib figures)
+  3. `result.predict(compute_budget)` returns optimal N, D, and expected loss for a specific budget
+  4. `flops_fit.find_optimal()` orchestrates the full pipeline (plan, train, analyze) and returns the Result object
 **Plans**: TBD
 
 Plans:
 - [ ] 06-01: TBD
 - [ ] 06-02: TBD
 
-### Phase 7: Multi-GPU Training
-**Goal**: Users can run sweep experiments across multiple GPUs for faster scaling law experiments
-**Depends on**: Phase 4 (needs training engine with Accelerate)
-**Requirements**: TRAIN-01
+### Phase 7: GPT + TinyStories Example
+**Goal**: Existing GPT code works as a library example demonstrating the full scaling law workflow
+**Depends on**: Phase 6 (needs working end-to-end API)
+**Requirements**: EX-01, EX-03
 **Success Criteria** (what must be TRUE):
-  1. User can launch a sweep with `accelerate launch` and it distributes data across available GPUs
-  2. Multi-GPU training produces identical scaling law fits as single-GPU training (within numerical tolerance)
-  3. Data loading is properly distributed so each GPU processes different batches without duplication
+  1. A self-contained example script shows how to use `flops_fit.find_optimal()` with GPT + TinyStories
+  2. A CLI wrapper example shows how to expose the library via command-line arguments
+  3. The existing GPT model is importable from `flops_fit.examples.gpt` (or similar) without being part of the core library
+  4. Running the example end-to-end produces scaling law predictions (in mock or CPU mode)
 **Plans**: TBD
 
 Plans:
 - [ ] 07-01: TBD
 - [ ] 07-02: TBD
 
-### Phase 8: Sweep Cost Estimation and Polish
-**Goal**: Users can estimate time and compute cost before committing to a full sweep, and the entire framework works end-to-end with confidence
-**Depends on**: Phase 7
-**Requirements**: TRAIN-02
+### Phase 8: ViT + CIFAR Example
+**Goal**: A second architecture and modality proves the library is truly architecture-agnostic
+**Depends on**: Phase 6 (needs working end-to-end API)
+**Requirements**: EX-02
 **Success Criteria** (what must be TRUE):
-  1. User can run a cost estimation command that reports estimated wall-clock time and compute (FLOPs) for a planned sweep before training starts
-  2. Cost estimates are based on a small calibration run (not just theoretical FLOP counts)
-  3. The full pipeline works end-to-end for both text and image modalities with all features (plugins, GPU training, multi-GPU, analysis, visualization)
+  1. A ViT + CIFAR example script uses `flops_fit.find_optimal()` to produce scaling law predictions for image classification
+  2. The ViT model conforms to the same model interface as GPT (model class + size param + num_params)
+  3. The library handles image data (pixel tensors) without any text-specific assumptions in the core
 **Plans**: TBD
 
 Plans:
 - [ ] 08-01: TBD
 - [ ] 08-02: TBD
 
+### Phase 9: Multi-GPU Data Parallelism
+**Goal**: Users with multiple GPUs can run sweeps faster via data parallelism
+**Depends on**: Phase 4 (training engine must be stable first)
+**Requirements**: TRAIN-02
+**Success Criteria** (what must be TRUE):
+  1. Library supports multi-GPU data parallelism via HuggingFace Accelerate
+  2. Multi-GPU training produces the same loss values as single-GPU (within numerical tolerance)
+  3. User does not need to modify their model class or dataset to use multi-GPU
+**Plans**: TBD
+
+Plans:
+- [ ] 09-01: TBD
+- [ ] 09-02: TBD
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
-
-Note: Phase 5 (Analysis) depends only on Phase 1 and can be executed in parallel with Phases 2-4 if desired.
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Existing Pipeline Baseline | 0/3 | Planning complete | - |
-| 2. Plugin Protocols and Loading | 0/TBD | Not started | - |
-| 3. GPT Plugin Refactor | 0/TBD | Not started | - |
+| 1. Library Skeleton and Model Interface | 0/TBD | Not started | - |
+| 2. Dataset and Loss Interfaces | 0/TBD | Not started | - |
+| 3. Sweep Planning | 0/TBD | Not started | - |
 | 4. Training Engine | 0/TBD | Not started | - |
-| 5. Analysis Improvements | 0/TBD | Not started | - |
-| 6. Image Modality | 0/TBD | Not started | - |
-| 7. Multi-GPU Training | 0/TBD | Not started | - |
-| 8. Sweep Cost Estimation and Polish | 0/TBD | Not started | - |
+| 5. Analysis and Fitting | 0/TBD | Not started | - |
+| 6. Results Object and API Integration | 0/TBD | Not started | - |
+| 7. GPT + TinyStories Example | 0/TBD | Not started | - |
+| 8. ViT + CIFAR Example | 0/TBD | Not started | - |
+| 9. Multi-GPU Data Parallelism | 0/TBD | Not started | - |
