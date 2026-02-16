@@ -13,7 +13,7 @@ Transform flops-fit from a hardcoded CLI pipeline (GPT + TinyStories) into a Pyt
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Library Skeleton and Model Interface** - Define package structure, `find_optimal()` signature, and model contract
-- [ ] **Phase 2: Dataset and Loss Interfaces** - Complete the input interfaces for user-provided data and loss
+- [x] **Phase 2: Dataset and Loss Interfaces** - Complete the input interfaces for user-provided data and loss
 - [ ] **Phase 3: Sweep Planning** - Generate IsoFLOP experiment grids from compute budgets and model interface
 - [ ] **Phase 4: Training Engine** - GPU-aware training loop consuming the library interfaces
 - [ ] **Phase 5: Analysis and Fitting** - Power law fitting with outlier detection and Chinchilla table output
@@ -49,8 +49,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — TDD: dataset validation/wrapping (data.py) and loss validation (loss.py)
-- [ ] 02-02-PLAN.md — Wire validation into find_optimal() with integration tests
+- [x] 02-01-PLAN.md — TDD: dataset validation/wrapping (data.py) and loss validation (loss.py)
+- [x] 02-02-PLAN.md — Wire validation into find_optimal() with integration tests
 
 ### Phase 3: Sweep Planning
 **Goal**: Users can see what experiments will run and estimate compute cost before committing GPU hours
@@ -163,7 +163,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Library Skeleton and Model Interface | 1/1 | Complete | 2026-02-16 |
-| 2. Dataset and Loss Interfaces | 0/2 | Planning complete | - |
+| 2. Dataset and Loss Interfaces | 2/2 | Complete | 2026-02-16 |
 | 3. Sweep Planning | 0/TBD | Not started | - |
 | 4. Training Engine | 0/TBD | Not started | - |
 | 5. Analysis and Fitting | 0/TBD | Not started | - |
