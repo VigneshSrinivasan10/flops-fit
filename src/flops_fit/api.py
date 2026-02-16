@@ -3,6 +3,8 @@
 Provides the find_optimal() entry point for computing-optimal model sizing.
 """
 
+from flops_fit.data import validate_dataset
+from flops_fit.loss import validate_loss_fn
 from flops_fit.model_factory import validate_model_contract
 
 
@@ -49,6 +51,14 @@ def find_optimal(
 
     # Validate model contract up front
     validate_model_contract(model_cls, model_size_param, model_kwargs)
+
+    # Validate dataset interface (Phase 2)
+    if dataset is not None:
+        validate_dataset(dataset)
+
+    # Validate loss function (Phase 2)
+    if loss_fn is not None:
+        validate_loss_fn(loss_fn)
 
     # Phase 1: Model creation works
     # Phase 2+: Actual sweep execution
