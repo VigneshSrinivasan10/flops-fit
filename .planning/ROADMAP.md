@@ -46,11 +46,11 @@ Plans:
   1. User can pass a PyTorch Dataset or DataLoader and the library handles batching and iteration
   2. User can pass any callable as a loss function and the library uses it during training
   3. Library validates dataset and loss interfaces at call time with clear error messages (not deep in a training loop)
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
+- [ ] 02-01-PLAN.md — TDD: dataset validation/wrapping (data.py) and loss validation (loss.py)
+- [ ] 02-02-PLAN.md — Wire validation into find_optimal() with integration tests
 
 ### Phase 3: Sweep Planning
 **Goal**: Users can see what experiments will run and estimate compute cost before committing GPU hours
@@ -163,7 +163,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Library Skeleton and Model Interface | 0/1 | Planning complete | - |
-| 2. Dataset and Loss Interfaces | 0/TBD | Not started | - |
+| 2. Dataset and Loss Interfaces | 0/2 | Planning complete | - |
 | 3. Sweep Planning | 0/TBD | Not started | - |
 | 4. Training Engine | 0/TBD | Not started | - |
 | 5. Analysis and Fitting | 0/TBD | Not started | - |
