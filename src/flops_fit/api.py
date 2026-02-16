@@ -1,0 +1,58 @@
+"""Public API for flops_fit.
+
+Provides the find_optimal() entry point for computing-optimal model sizing.
+"""
+
+from flops_fit.model_factory import validate_model_contract
+
+
+def find_optimal(
+    model_cls,
+    model_size_param,
+    model_kwargs=None,
+    dataset=None,
+    loss_fn=None,
+    compute_budgets=None,
+    **kwargs,
+):
+    """Find compute-optimal model size using scaling law experiments.
+
+    Validates that the provided model class meets the flops_fit contract
+    (must accept ``model_size_param`` as a constructor argument and expose
+    a ``num_params() -> int`` method), then runs IsoFLOPs sweeps to fit
+    scaling laws and predict optimal model sizes for given compute budgets.
+
+    Args:
+        model_cls: A model class that accepts ``model_size_param`` as a
+            constructor argument and exposes a ``num_params()`` method.
+        model_size_param: Name of the constructor parameter that controls
+            model size (e.g., ``"d_model"``, ``"hidden_size"``, ``"width"``).
+        model_kwargs: Additional keyword arguments passed to model_cls
+            constructor (everything except the size parameter). Defaults
+            to ``{}``.
+        dataset: Training dataset (Phase 2).
+        loss_fn: Loss function (Phase 2).
+        compute_budgets: List of compute budgets in FLOPs (Phase 3).
+        **kwargs: Additional configuration options for future phases.
+
+    Returns:
+        Result object with scaling law predictions (Phase 6).
+
+    Raises:
+        TypeError: If model_cls doesn't meet the model contract.
+        ValueError: If model parameters are invalid.
+        NotImplementedError: After successful validation (full pipeline
+            not yet implemented).
+    """
+    if model_kwargs is None:
+        model_kwargs = {}
+
+    # Validate model contract up front
+    validate_model_contract(model_cls, model_size_param, model_kwargs)
+
+    # Phase 1: Model creation works
+    # Phase 2+: Actual sweep execution
+    raise NotImplementedError(
+        "find_optimal() model validation passed. "
+        "Full pipeline not yet implemented."
+    )

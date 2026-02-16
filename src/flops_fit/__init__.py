@@ -20,6 +20,7 @@ Key components:
 
 __version__ = "0.1.0"
 
+from flops_fit.api import find_optimal
 from flops_fit.model import GPT, GPTConfig, create_model_for_scaling, estimate_model_flops
 from flops_fit.planner import SweepPlanner
 from flops_fit.trainer import TrainingRunner
@@ -27,6 +28,8 @@ from flops_fit.analyzer import ScalingLawAnalyzer
 from flops_fit.visualizer import ScalingVisualizer
 
 __all__ = [
+    # Public API
+    "find_optimal",
     # Model
     "GPT",
     "GPTConfig",
