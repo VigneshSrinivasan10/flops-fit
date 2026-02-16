@@ -12,7 +12,7 @@ Transform flops-fit from a hardcoded CLI pipeline (GPT + TinyStories) into a Pyt
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Library Skeleton and Model Interface** - Define package structure, `find_optimal()` signature, and model contract
+- [x] **Phase 1: Library Skeleton and Model Interface** - Define package structure, `find_optimal()` signature, and model contract
 - [ ] **Phase 2: Dataset and Loss Interfaces** - Complete the input interfaces for user-provided data and loss
 - [ ] **Phase 3: Sweep Planning** - Generate IsoFLOP experiment grids from compute budgets and model interface
 - [ ] **Phase 4: Training Engine** - GPU-aware training loop consuming the library interfaces
@@ -36,7 +36,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans:** 1 plan
 
 Plans:
-- [ ] 01-01-PLAN.md — Model factory, API stub, contract validation, and tests
+- [x] 01-01-PLAN.md — Model factory, API stub, contract validation, and tests
 
 ### Phase 2: Dataset and Loss Interfaces
 **Goal**: Users can pass their own dataset and loss function as Python objects
@@ -162,7 +162,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Library Skeleton and Model Interface | 0/1 | Planning complete | - |
+| 1. Library Skeleton and Model Interface | 1/1 | Complete | 2026-02-16 |
 | 2. Dataset and Loss Interfaces | 0/2 | Planning complete | - |
 | 3. Sweep Planning | 0/TBD | Not started | - |
 | 4. Training Engine | 0/TBD | Not started | - |
