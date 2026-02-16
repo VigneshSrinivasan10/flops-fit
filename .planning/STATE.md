@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-16)
 
 **Core value:** Given a compute budget, tell the user exactly how big their model should be and how much data to train on -- for their specific architecture and dataset.
-**Current focus:** Phase 1 complete - Library Skeleton and Model Interface. Ready for Phase 2.
+**Current focus:** Phase 2 in progress - Dataset and Loss Interfaces. Plan 01 complete, Plan 02 next.
 
 ## Current Position
 
-Phase: 1 of 9 (Library Skeleton and Model Interface) — COMPLETE
-Plan: 1/1 complete, verified 4/4 must-haves
-Status: Phase 1 complete, ready for Phase 2 (Dataset and Loss Interfaces)
-Last activity: 2026-02-16 -- Phase 1 verified: find_optimal importable, model factory scales models, contract validation works, package installable
+Phase: 2 of 9 (Dataset and Loss Interfaces)
+Plan: 1/2 complete
+Status: Plan 02-01 (dataset and loss validation) complete. Plan 02-02 (API integration) next.
+Last activity: 2026-02-16 -- 02-01 complete: validate_dataset, wrap_dataset, validate_loss_fn with 27 tests
 
-Progress: [██░░░░░░░░] 11%
+Progress: [██░░░░░░░░] 15%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: ~14min
-- Total execution time: ~52min
+- Total plans completed: 5
+- Average duration: ~11min
+- Total execution time: ~54min
 
 **By Phase:**
 
@@ -29,9 +29,10 @@ Progress: [██░░░░░░░░] 11%
 |-------|-------|-------|----------|
 | 01-baseline | 3/3 | ~50min | ~17min |
 | 01-skeleton | 1/1 | ~2min | ~2min |
+| 02-dataset-and-loss | 1/2 | ~2min | ~2min |
 
 **Recent Trend:**
-- Last 3 plans: 01-02 (~15min), 01-03 (~15min), 01-01-skeleton (~2min)
+- Last 3 plans: 01-03 (~15min), 01-01-skeleton (~2min), 02-01 (~2min)
 - Trend: Accelerating
 
 *Updated after each plan completion*
@@ -54,6 +55,10 @@ Recent decisions affecting current work:
 - Duck typing for model contract: num_params() -> int, no base class required
 - Probe-based validation creates small instance (size=64) to verify contract up front
 - Warning (not error) when size_param appears in model_kwargs
+- IterableDataset wrapping forces shuffle=False (torch requirement)
+- nn.Module signature inspection targets .forward not __call__ for accurate param counts
+- Uninspectable callables (C extensions) pass validation silently
+- drop_last=True on all wrapped DataLoaders for consistent batch sizes
 
 ### Pending Todos
 
@@ -67,5 +72,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-16
-Stopped at: Phase 1 (Library Skeleton) complete and verified. Phase 2 (Dataset and Loss Interfaces) ready.
+Stopped at: Completed 02-01-PLAN.md (dataset and loss validation). Ready for 02-02 (API integration).
 Resume file: None
