@@ -5,33 +5,34 @@
 See: .planning/PROJECT.md (updated 2026-02-16)
 
 **Core value:** Given a compute budget, tell the user exactly how big their model should be and how much data to train on -- for their specific architecture and dataset.
-**Current focus:** Phase 1 complete - Existing Pipeline Baseline
+**Current focus:** Library skeleton and model interface
 
 ## Current Position
 
-Phase: 1 of 9 (Existing Pipeline Baseline)
-Plan: 3 of 3 in current phase (ALL COMPLETE)
-Status: Phase 1 complete, ready for Phase 2
-Last activity: 2026-02-16 -- Phase 1 executed (64 characterization tests across 5 modules)
+Phase: 1 of 9 (Library Skeleton and Model Interface)
+Plan: 1 of 1 in current phase (01-01 COMPLETE)
+Status: 01-library-skeleton-and-model-interface complete
+Last activity: 2026-02-16 -- Library skeleton: model factory, contract validation, find_optimal() API stub
 
 Progress: [█░░░░░░░░░] 11%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: ~17min
-- Total execution time: ~50min
+- Total plans completed: 4
+- Average duration: ~14min
+- Total execution time: ~52min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01 | 3/3 | ~50min | ~17min |
+| 01-baseline | 3/3 | ~50min | ~17min |
+| 01-skeleton | 1/1 | ~2min | ~2min |
 
 **Recent Trend:**
-- Last 3 plans: 01-01 (~20min), 01-02 (~15min), 01-03 (~15min)
-- Trend: Stable
+- Last 3 plans: 01-02 (~15min), 01-03 (~15min), 01-01-skeleton (~2min)
+- Trend: Accelerating
 
 *Updated after each plan completion*
 
@@ -50,6 +51,9 @@ Recent decisions affecting current work:
 - create_model_for_scaling 12*L*d² approximation overshoots by ~7.5x at small scales due to SwiGLU + d_model rounding
 - Known inconsistency: analyzer uses 2-decimal bucket rounding, visualizer uses 1-decimal
 - Hydra config tests use initialize_config_dir (not config_module) since conf/ has no __init__.py
+- Duck typing for model contract: num_params() -> int, no base class required
+- Probe-based validation creates small instance (size=64) to verify contract up front
+- Warning (not error) when size_param appears in model_kwargs
 
 ### Pending Todos
 
@@ -63,5 +67,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-16
-Stopped at: Phase 1 complete (64 tests passing), ready for Phase 2
+Stopped at: Completed 01-01-PLAN.md (library skeleton and model interface)
 Resume file: None
