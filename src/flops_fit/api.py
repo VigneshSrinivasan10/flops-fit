@@ -16,6 +16,9 @@ def find_optimal(
     dataset=None,
     loss_fn=None,
     compute_budgets=None,
+    train: bool = True,
+    output_dir: str = "outputs",
+    resume: bool = True,
     **kwargs,
 ):
     """Find compute-optimal model size using scaling law experiments.
@@ -33,15 +36,29 @@ def find_optimal(
         model_kwargs: Additional keyword arguments passed to model_cls
             constructor (everything except the size parameter). Defaults
             to ``{}``.
-        dataset: Training dataset (Phase 2).
-        loss_fn: Loss function (Phase 2).
+        dataset: Training dataset (torch Dataset or DataLoader). Required for
+            training execution.
+        loss_fn: Loss function callable (outputs, targets) -> scalar tensor.
+            Required for training execution.
         compute_budgets: List of compute budgets in FLOPs (Phase 3).
+        train: If True (default) and ``dataset`` + ``loss_fn`` are both
+            provided, executes training and returns results. If False, returns
+            the SweepPlan for inspection without running training.
+        output_dir: Directory to write ``results.json`` and experiment
+            artifacts. Only used when ``train=True``. Defaults to
+            ``"outputs"``.
+        resume: If True (default), skip experiments already recorded as
+            completed in ``{output_dir}/results.json`` from a prior run.
         **kwargs: Additional configuration options for future phases.
 
     Returns:
-        SweepPlan: When ``compute_budgets`` is provided, returns an
-            inspectable experiment grid (IsoFLOPs sweep plan) that
-            the user can review before committing to training.
+        list[dict]: When ``train=True`` and both ``dataset`` and ``loss_fn``
+            are provided, returns a list of result dicts (one per experiment)
+            with keys: ``experiment_id``, ``final_loss``, ``actual_flops``,
+            ``wall_time_seconds``, ``status``, and metadata.
+        SweepPlan: When ``train=False``, or when ``dataset`` / ``loss_fn``
+            is omitted, returns an inspectable experiment grid that the user
+            can review before committing to training.
 
     Raises:
         TypeError: If model_cls doesn't meet the model contract.
@@ -63,7 +80,7 @@ def find_optimal(
     if loss_fn is not None:
         validate_loss_fn(loss_fn)
 
-    # Phase 3: Generate and return sweep plan
+    # Phase 3 + 4: Generate sweep plan and optionally execute training
     if compute_budgets is not None:
         plan = plan_sweep(
             model_cls=model_cls,
@@ -71,6 +88,22 @@ def find_optimal(
             model_kwargs=model_kwargs,
             compute_budgets=compute_budgets,
         )
+
+        # Phase 4: execute training if dataset + loss_fn both provided and train=True
+        if train and dataset is not None and loss_fn is not None:
+            from flops_fit.trainer import TrainingRunner
+            runner = TrainingRunner(mode="local", output_dir=output_dir)
+            return runner.run_sweep_from_plan(
+                plan=plan,
+                model_cls=model_cls,
+                size_param=model_size_param,
+                model_kwargs=model_kwargs,
+                dataset_or_loader=dataset,
+                loss_fn=loss_fn,
+                resume=resume,
+            )
+
+        # Inspection mode: just return the plan
         return plan
 
     # Full training pipeline not yet implemented
