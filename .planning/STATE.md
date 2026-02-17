@@ -9,17 +9,17 @@ See: .planning/PROJECT.md (updated 2026-02-16)
 
 ## Current Position
 
-Phase: 3 of 9 (Sweep Planning) -- COMPLETE
-Plan: 2/2 complete
-Status: find_optimal() returns SweepPlan when compute_budgets provided. 133 tests passing.
-Last activity: 2026-02-17 -- 03-02 complete: API integration with 6 new integration tests
+Phase: 4 of 9 (Training Engine) -- IN PROGRESS
+Plan: 1/2 complete
+Status: _local_train(), run_experiment_from_sweep(), run_sweep_from_plan() implemented. 139 tests passing.
+Last activity: 2026-02-17 -- 04-01 complete: local training loop with device placement and Chinchilla FLOPs
 
-Progress: [███░░░░░░░] 33%
+Progress: [████░░░░░░] 38%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
+- Total plans completed: 9
 - Average duration: ~8min
 - Total execution time: ~61min
 
@@ -31,6 +31,7 @@ Progress: [███░░░░░░░] 33%
 | 01-skeleton | 1/1 | ~2min | ~2min |
 | 02-dataset-and-loss | 2/2 | ~4min | ~2min |
 | 03-sweep-planning | 2/2 | ~5min | ~2.5min |
+| 04-training-engine | 1/2 | ~2min | ~2min |
 
 **Recent Trend:**
 - Last 3 plans: 02-02 (~2min), 03-01 (~3min), 03-02 (~2min)
@@ -65,6 +66,10 @@ Recent decisions affecting current work:
 - Probe models via create_model() with try/except to skip invalid sizes gracefully
 - Feasibility filter: tokens >= num_params/10 (matching existing planner.py)
 - Configurable flops_per_param_per_token (default 6) for non-transformer architectures
+- _local_train() uses actual model.num_params() post-creation for FLOPs (not experiment.num_params)
+- SGD optimizer with lr=0.01 default for local training (scaling law experiments need loss signal, not optimized convergence)
+- Model cleanup: del model + torch.cuda.empty_cache() after each experiment to prevent GPU OOM across sweeps
+- run_sweep_from_plan returns list[dict] (matching existing run_sweep() API) for consistency
 
 ### Pending Todos
 
@@ -78,5 +83,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-17
-Stopped at: Completed 03-02-PLAN.md (API integration). Phase 3 complete. Ready for Phase 4.
+Stopped at: Completed 04-01-PLAN.md (local training loop). 139 tests passing. Ready for 04-02.
 Resume file: None
