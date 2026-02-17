@@ -315,13 +315,17 @@ class TestPowerLawFitLinearSpace:
     """Test suite for linear-space power law fitting with irreducible loss (l_inf)."""
 
     def test_fit_power_law_with_irreducible_loss(self, tmp_path):
-        """fit_power_law recovers l_inf and exponent from data with a known baseline."""
+        """fit_power_law recovers l_inf and exponent from data with a known baseline.
+
+        Uses x in [10, 1e5] so that l_inf=1.5 is a significant fraction of y_min
+        (~83%), making it detectable by nonlinear least squares.
+        """
         analyzer = ScalingLawAnalyzer(
             results_path=tmp_path / "r.json",
             output_dir=tmp_path / "a",
         )
         np.random.seed(0)
-        x = np.logspace(10, 20, 20)
+        x = np.logspace(1, 5, 20)
         y = 1.5 + 0.1 * np.power(x, 0.5) * np.random.uniform(0.95, 1.05, 20)
         fit = analyzer.fit_power_law(x, y, "L_opt")
         assert fit.l_inf is not None
@@ -330,13 +334,16 @@ class TestPowerLawFitLinearSpace:
         assert fit.r_squared > 0.95
 
     def test_fit_power_law_l_inf_stored_in_result(self, tmp_path):
-        """fit_power_law always returns a PowerLawFit with l_inf attribute set."""
+        """fit_power_law always returns a PowerLawFit with l_inf attribute set.
+
+        Uses x in [1e2, 1e5] so l_inf=2.0 is detectable against the trend.
+        """
         analyzer = ScalingLawAnalyzer(
             results_path=tmp_path / "r.json",
             output_dir=tmp_path / "a",
         )
         np.random.seed(1)
-        x = np.logspace(12, 20, 15)
+        x = np.logspace(2, 5, 15)
         y = 2.0 + 0.05 * np.power(x, 0.4)
         fit = analyzer.fit_power_law(x, y, "test")
         assert hasattr(fit, "l_inf")

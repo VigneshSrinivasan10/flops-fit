@@ -37,23 +37,34 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class PowerLawFit:
-    """Result of fitting a power law: y = k * x^a"""
-    
+    """Result of fitting a power law: y = k * x^a (or y = l_inf + k * x^a)"""
+
     name: str
     coefficient_k: float  # Multiplicative constant
     exponent_a: float  # Power law exponent
     r_squared: float  # Goodness of fit
-    
+
     # Confidence intervals (95%)
     k_ci: tuple[float, float] | None = None
     a_ci: tuple[float, float] | None = None
-    
+
+    # Irreducible loss baseline (L_inf + k*C^a form)
+    l_inf: float | None = None
+
     def predict(self, x: np.ndarray) -> np.ndarray:
         """Predict y values for given x."""
-        return self.coefficient_k * np.power(x, self.exponent_a)
-    
+        base = self.coefficient_k * np.power(x, self.exponent_a)
+        return base + self.l_inf if self.l_inf is not None else base
+
     def to_dict(self) -> dict:
         """Convert to dictionary for serialization."""
+        if self.l_inf is not None:
+            formula = (
+                f"{self.name} = {self.l_inf:.4f} + "
+                f"{self.coefficient_k:.4e} * C^{self.exponent_a:.4f}"
+            )
+        else:
+            formula = f"{self.name} = {self.coefficient_k:.4e} * C^{self.exponent_a:.4f}"
         return {
             "name": self.name,
             "coefficient_k": self.coefficient_k,
@@ -61,7 +72,8 @@ class PowerLawFit:
             "r_squared": self.r_squared,
             "k_ci": list(self.k_ci) if self.k_ci else None,
             "a_ci": list(self.a_ci) if self.a_ci else None,
-            "formula": f"{self.name} = {self.coefficient_k:.4e} * C^{self.exponent_a:.4f}",
+            "l_inf": self.l_inf,
+            "formula": formula,
         }
 
 
@@ -186,60 +198,110 @@ class ScalingLawAnalyzer:
         x: np.ndarray,
         y: np.ndarray,
         name: str,
+        exclude_outliers: bool = True,
+        outlier_iqr_multiplier: float = 1.5,
     ) -> PowerLawFit:
         """
-        Fit a power law: y = k * x^a
-        
-        Uses log-linear regression for numerical stability:
-        log(y) = log(k) + a * log(x)
-        
+        Fit a power law: y = L_inf + k * x^a (linear space, nonlinear least squares).
+
+        Uses scipy.optimize.least_squares in linear space with an explicit
+        irreducible loss term L_inf. Optionally detects and excludes outliers
+        using the IQR method on initial fit residuals before the final fit.
+
         Args:
-            x: Independent variable (e.g., compute budget)
-            y: Dependent variable (e.g., optimal params)
-            name: Name for the fit (e.g., "N_opt")
-            
+            x: Independent variable (e.g., compute budget in FLOPs)
+            y: Dependent variable (e.g., optimal loss, model size)
+            name: Name for the fit (e.g., "N_opt", "L_opt")
+            exclude_outliers: If True and len >= 5, detect and exclude outliers
+                via IQR method on rough initial fit residuals.
+            outlier_iqr_multiplier: IQR multiplier for outlier bounds (standard 1.5)
+
         Returns:
-            PowerLawFit with coefficients and goodness of fit
+            PowerLawFit with fitted k, a, r_squared, and l_inf
         """
-        # Filter out invalid values
+        # Filter obviously invalid values
         valid = (x > 0) & (y > 0) & np.isfinite(x) & np.isfinite(y)
-        x, y = x[valid], y[valid]
-        
-        if len(x) < 2:
+        x_clean = x[valid]
+        y_clean = y[valid]
+
+        if len(x_clean) < 2:
             raise ValueError(f"Not enough valid points to fit {name}")
-        
-        # Log transform
-        log_x = np.log10(x)
-        log_y = np.log10(y)
-        
-        # Linear regression in log space
-        def linear_model(params, x):
-            return params[0] + params[1] * x
-        
-        def residuals(params, x, y):
-            return y - linear_model(params, x)
-        
-        # Initial guess
-        p0 = [np.mean(log_y), 0.5]
-        
-        # Fit
-        result = optimize.least_squares(residuals, p0, args=(log_x, log_y))
-        log_k, a = result.x
+
+        # Pass 1: Rough initial fit (log-space, no L_inf) for outlier detection
+        if exclude_outliers and len(x_clean) >= 5:
+            log_x = np.log10(x_clean)
+            log_y = np.log10(y_clean)
+
+            def residuals_rough(params):
+                return log_y - (params[0] + params[1] * log_x)
+
+            result_rough = optimize.least_squares(
+                residuals_rough, [np.mean(log_y), 0.5]
+            )
+            log_k_r, a_r = result_rough.x
+            y_pred_rough = (10 ** log_k_r) * np.power(x_clean, a_r)
+            residuals_vals = y_clean - y_pred_rough
+
+            q1 = np.percentile(residuals_vals, 25)
+            q3 = np.percentile(residuals_vals, 75)
+            iqr = q3 - q1
+            lower = q1 - outlier_iqr_multiplier * iqr
+            upper = q3 + outlier_iqr_multiplier * iqr
+
+            is_inlier = (residuals_vals >= lower) & (residuals_vals <= upper)
+            n_excluded = int((~is_inlier).sum())
+
+            if n_excluded > 0:
+                logger.info(f"{name}: Excluding {n_excluded} outlier(s) (IQR method)")
+                x_clean = x_clean[is_inlier]
+                y_clean = y_clean[is_inlier]
+
+            if len(x_clean) < 2:
+                raise ValueError(
+                    f"Not enough inlier points after outlier removal for {name}"
+                )
+
+        # Pass 2: Final linear-space fit with irreducible loss: y = L_inf + k * x^a
+        # Parametrize as [log10(k), a, l_inf] for scale-invariant optimization.
+        # Estimate initial log_k from log-space regression (bounds-safe).
+        log_x_all = np.log10(x_clean)
+        log_y_all = np.log10(np.clip(y_clean, 1e-30, None))
+        a_init = float(np.polyfit(log_x_all, log_y_all, 1)[0])
+        log_k_est = float(np.mean(log_y_all - a_init * log_x_all))
+        log_k_init = float(np.clip(log_k_est, -10 + 1e-6, 5 - 1e-6))
+        a_init_clamped = float(np.clip(a_init, -1 + 1e-6, 2 - 1e-6))
+        p0 = [log_k_init, a_init_clamped, np.min(y_clean) * 0.95]
+
+        def residuals_final(params):
+            log_k, a, l_inf = params
+            k = 10 ** log_k
+            y_pred = l_inf + k * np.power(x_clean, a)
+            return y_clean - y_pred
+
+        result = optimize.least_squares(
+            residuals_final,
+            p0,
+            bounds=([-10, -1, 0], [5, 2, np.inf]),
+        )
+        log_k, a, l_inf = result.x
         k = 10 ** log_k
-        
-        # R-squared
-        y_pred = linear_model(result.x, log_x)
-        ss_res = np.sum((log_y - y_pred) ** 2)
-        ss_tot = np.sum((log_y - np.mean(log_y)) ** 2)
+        y_pred = l_inf + k * np.power(x_clean, a)
+
+        # R² in linear space on inlier points
+        ss_res = np.sum((y_clean - y_pred) ** 2)
+        ss_tot = np.sum((y_clean - np.mean(y_clean)) ** 2)
         r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
-        
-        logger.info(f"{name} = {k:.4e} * C^{a:.4f} (R² = {r_squared:.4f})")
-        
+
+        logger.info(
+            f"{name} = {l_inf:.4f} + {k:.4e} * C^{a:.4f} (R\u00b2 = {r_squared:.4f})"
+        )
+
         return PowerLawFit(
             name=name,
             coefficient_k=k,
             exponent_a=a,
             r_squared=r_squared,
+            l_inf=float(l_inf),
         )
     
     def analyze(self) -> ScalingAnalysis:
