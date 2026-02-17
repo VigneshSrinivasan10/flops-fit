@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-16)
 
 **Core value:** Given a compute budget, tell the user exactly how big their model should be and how much data to train on -- for their specific architecture and dataset.
-**Current focus:** Phase 7 complete. GPT examples package + example scripts + 188 tests passing.
+**Current focus:** Phase 8 complete. ViT + CIFAR example + 201 tests passing. Ready for Phase 9 (packaging and docs).
 
 ## Current Position
 
-Phase: 8 of 9 (ViT + CIFAR Example) -- IN PROGRESS (1/2 plans complete)
-Plan: 1/2 complete
-Status: VisionTransformer + vit_loss_fn in examples/vit.py; CIFAR10Dataset in examples/cifar.py; 7 exports from flops_fit.examples; 188 tests passing.
-Last activity: 2026-02-17 -- 08-01 complete: VisionTransformer + CIFAR10Dataset
+Phase: 8 of 9 (ViT + CIFAR Example) -- COMPLETE (2/2 plans complete)
+Plan: 2/2 complete
+Status: example_vit_cifar.py runnable demo; 201 tests passing; Phase 8 fully complete.
+Last activity: 2026-02-17 -- 08-02 complete: example_vit_cifar.py + ViT test classes
 
-Progress: [█████████░] 83%
+Progress: [█████████░] 89%
 
 ## Performance Metrics
 
@@ -35,7 +35,7 @@ Progress: [█████████░] 83%
 | 05-analysis-and-fitting | 3/3 | ~22min | ~7min |
 | 06-results-object-and-api-integration | 2/2 | ~6min | ~3min |
 | 07-gpt-and-tinystories-example | 2/3 | ~7min | ~3.5min |
-| 08-vit-and-cifar-example | 1/2 | ~2min | ~2min |
+| 08-vit-and-cifar-example | 2/2 | ~5min | ~2.5min |
 
 **Recent Trend:**
 - Last 3 plans: 05-01 (~18min), 05-02 (~2min), 05-03 (~2min)
@@ -97,6 +97,9 @@ Recent decisions affecting current work:
 - vit_loss_fn(logits, labels) has no tuple unpacking -- proves library handles both output patterns
 - Lazy torchvision import inside _prepare_data() only (matches TinyStories lazy HF import pattern)
 - norm_first=True (pre-norm transformer) for ViT -- triggers benign PyTorch UserWarning about enable_nested_tensor, not an error
+- make_vit_factory defaults num_layers=4 (not 6) for faster demo sweep
+- Labels use .long() explicitly in _make_synthetic_cifar_dataset -- PyTorch cross_entropy requires LongTensor
+- Architecture-agnostic find_optimal(): only model_cls, model_size_param (embed_dim vs d_model), and loss_fn differ between GPT and ViT demos
 
 ### Pending Todos
 
@@ -110,5 +113,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-17
-Stopped at: Completed 08-01-PLAN.md (VisionTransformer + CIFAR10Dataset). 188 tests passing.
+Stopped at: Completed 08-02-PLAN.md (example_vit_cifar.py + ViT tests). 201 tests passing. Phase 8 complete.
 Resume file: None
