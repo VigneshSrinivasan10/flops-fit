@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-16)
 
 **Core value:** Given a compute budget, tell the user exactly how big their model should be and how much data to train on -- for their specific architecture and dataset.
-**Current focus:** Phase 2 complete. Ready for Phase 3.
+**Current focus:** Phase 3 in progress. Sweep planning module implemented, API integration next.
 
 ## Current Position
 
-Phase: 2 of 9 (Dataset and Loss Interfaces) -- COMPLETE
-Plan: 2/2 complete
-Status: Phase 2 complete. find_optimal() validates model, dataset, and loss_fn at call time.
-Last activity: 2026-02-16 -- 02-02 complete: API integration with 8 new tests (12 total in test_api.py)
+Phase: 3 of 9 (Sweep Planning) -- IN PROGRESS
+Plan: 1/2 complete
+Status: plan_sweep() implemented with probe-based IsoFLOP grid generation. Ready for 03-02 API integration.
+Last activity: 2026-02-17 -- 03-01 complete: sweep.py with Experiment, SweepPlan, plan_sweep() (16 tests)
 
-Progress: [██░░░░░░░░] 18%
+Progress: [██░░░░░░░░] 22%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
-- Average duration: ~9min
-- Total execution time: ~56min
+- Total plans completed: 7
+- Average duration: ~8min
+- Total execution time: ~59min
 
 **By Phase:**
 
@@ -30,10 +30,11 @@ Progress: [██░░░░░░░░] 18%
 | 01-baseline | 3/3 | ~50min | ~17min |
 | 01-skeleton | 1/1 | ~2min | ~2min |
 | 02-dataset-and-loss | 2/2 | ~4min | ~2min |
+| 03-sweep-planning | 1/2 | ~3min | ~3min |
 
 **Recent Trend:**
-- Last 3 plans: 01-01-skeleton (~2min), 02-01 (~2min), 02-02 (~2min)
-- Trend: Accelerating
+- Last 3 plans: 02-01 (~2min), 02-02 (~2min), 03-01 (~3min)
+- Trend: Consistent
 
 *Updated after each plan completion*
 
@@ -59,6 +60,11 @@ Recent decisions affecting current work:
 - nn.Module signature inspection targets .forward not __call__ for accurate param counts
 - Uninspectable callables (C extensions) pass validation silently
 - drop_last=True on all wrapped DataLoaders for consistent batch sizes
+- Standalone plan_sweep() function (not class) -- matches library-first design
+- Log-spaced size values rounded to multiples of 64 for GPU efficiency
+- Probe models via create_model() with try/except to skip invalid sizes gracefully
+- Feasibility filter: tokens >= num_params/10 (matching existing planner.py)
+- Configurable flops_per_param_per_token (default 6) for non-transformer architectures
 
 ### Pending Todos
 
@@ -71,6 +77,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-16
-Stopped at: Completed 02-02-PLAN.md (API integration). Phase 2 complete. Ready for Phase 3.
+Last session: 2026-02-17
+Stopped at: Completed 03-01-PLAN.md (sweep planning module). Ready for 03-02 API integration.
 Resume file: None
