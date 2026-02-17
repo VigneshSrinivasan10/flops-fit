@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-16)
 
 **Core value:** Given a compute budget, tell the user exactly how big their model should be and how much data to train on -- for their specific architecture and dataset.
-**Current focus:** Phase 6 plan 01 complete. Result facade dataclass created. 169 tests passing.
+**Current focus:** Phase 6 complete. find_optimal() returns Result after training. 169 tests passing.
 
 ## Current Position
 
-Phase: 6 of 9 (Results Object and API Integration) -- IN PROGRESS (1/2 plans complete)
-Plan: 1/2 complete
-Status: Result dataclass implemented; 169 tests passing.
-Last activity: 2026-02-17 -- 06-01 complete: Result facade dataclass with chinchilla_table/predict/plot
+Phase: 6 of 9 (Results Object and API Integration) -- COMPLETE (2/2 plans complete)
+Plan: 2/2 complete
+Status: find_optimal() chains train->analyze->visualize->Result; 169 tests passing.
+Last activity: 2026-02-17 -- 06-02 complete: find_optimal() returns Result after training
 
-Progress: [██████░░░░] 60%
+Progress: [███████░░░] 67%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
+- Total plans completed: 13
 - Average duration: ~7min
-- Total execution time: ~83min
+- Total execution time: ~87min
 
 **By Phase:**
 
@@ -33,7 +33,7 @@ Progress: [██████░░░░] 60%
 | 03-sweep-planning | 2/2 | ~5min | ~2.5min |
 | 04-training-engine | 2/2 | ~4min | ~2min |
 | 05-analysis-and-fitting | 3/3 | ~22min | ~7min |
-| 06-results-object-and-api-integration | 1/2 | ~2min | ~2min |
+| 06-results-object-and-api-integration | 2/2 | ~6min | ~3min |
 
 **Recent Trend:**
 - Last 3 plans: 05-01 (~18min), 05-02 (~2min), 05-03 (~2min)
@@ -83,6 +83,8 @@ Recent decisions affecting current work:
 - Use l_fit.get('l_inf') or 0 not l_fit.get('l_inf', 0): JSON null deserializes to Python None, and .get('l_inf', 0) returns None for null while 'or 0' correctly coerces None to 0
 - Result is a pure facade: chinchilla_table/predict/plot all delegate to Phase 5 components (ScalingAnalysis, ScalingVisualizer), no reimplementation
 - test_chinchilla_table_with_custom_budgets counts data rows by line filtering (not '|---' substring count; separator row has 5 occurrences of '|---', one per column)
+- Analyzer requires 2+ distinct compute budget levels for power law fitting; integration tests use 5 budgets [1e8, 3e8, 1e9, 3e9, 1e10]
+- find_optimal() training branch chains: run_sweep_from_plan() -> ScalingLawAnalyzer.analyze() -> Result(analysis, visualizer); results.json written as side effect
 
 ### Pending Todos
 
@@ -96,5 +98,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-17
-Stopped at: Completed 06-01-PLAN.md (Result facade dataclass). 169 tests passing.
+Stopped at: Completed 06-02-PLAN.md (find_optimal() returns Result after training). 169 tests passing.
 Resume file: None
