@@ -27,10 +27,13 @@ from flops_fit.planner import SweepPlanner
 from flops_fit.trainer import TrainingRunner
 from flops_fit.analyzer import ScalingLawAnalyzer
 from flops_fit.visualizer import ScalingVisualizer
+from flops_fit.result import Result
 
 __all__ = [
     # Public API
     "find_optimal",
+    # Result object
+    "Result",
     # Model
     "GPT",
     "GPTConfig",

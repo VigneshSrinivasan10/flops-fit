@@ -74,7 +74,9 @@ class TestResult:
 
     def test_chinchilla_table_with_custom_budgets(self, result):
         table = result.chinchilla_table([1e18, 1e20])
-        assert table.count("|---") == 1  # one separator row = 2 data rows
+        # separator is |---|---|---|---|---| (one line), data rows = 2
+        lines = [l for l in table.split("\n") if l.startswith("|") and "---|" not in l and "Compute" not in l]
+        assert len(lines) == 2  # one separator row = 2 data rows
 
     def test_predict_returns_dict(self, result):
         pred = result.predict(1e18)
