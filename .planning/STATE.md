@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-16)
 
 **Core value:** Given a compute budget, tell the user exactly how big their model should be and how much data to train on -- for their specific architecture and dataset.
-**Current focus:** Phase 3 complete. Sweep planning wired into find_optimal() API. Ready for Phase 4.
+**Current focus:** Phase 5 in progress. Linear-space NLS fitting with l_inf and IQR outlier detection complete.
 
 ## Current Position
 
-Phase: 4 of 9 (Training Engine) -- COMPLETE
-Plan: 2/2 complete
-Status: find_optimal() wired to execute training; list[dict] results returned; resume and output_dir supported. 144 tests passing.
-Last activity: 2026-02-17 -- 04-02 complete: training execution wired into find_optimal() API
+Phase: 5 of 9 (Analysis and Fitting) -- IN PROGRESS
+Plan: 1/? complete
+Status: fit_power_law() refactored to linear-space NLS with l_inf and IQR outlier detection. 152 tests passing.
+Last activity: 2026-02-17 -- 05-01 complete: linear-space NLS fitting with l_inf and IQR outlier detection
 
-Progress: [█████░░░░░] 44%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
+- Total plans completed: 10
 - Average duration: ~8min
-- Total execution time: ~61min
+- Total execution time: ~79min
 
 **By Phase:**
 
@@ -32,10 +32,11 @@ Progress: [█████░░░░░] 44%
 | 02-dataset-and-loss | 2/2 | ~4min | ~2min |
 | 03-sweep-planning | 2/2 | ~5min | ~2.5min |
 | 04-training-engine | 2/2 | ~4min | ~2min |
+| 05-analysis-and-fitting | 1/? | ~18min | ~18min |
 
 **Recent Trend:**
-- Last 3 plans: 02-02 (~2min), 03-01 (~3min), 03-02 (~2min)
-- Trend: Consistent
+- Last 3 plans: 04-01 (~2min), 04-02 (~2min), 05-01 (~18min)
+- Trend: 05-01 longer due to TDD + debugging initial guess bounds issue
 
 *Updated after each plan completion*
 
@@ -73,6 +74,9 @@ Recent decisions affecting current work:
 - Lazy-import TrainingRunner inside training branch to avoid circular imports and keep startup fast
 - train=True default makes training the happy path when dataset+loss_fn provided (explicit opt-out via train=False)
 - output_dir defaults to 'outputs' (string not Path) so TrainingRunner handles Path conversion internally
+- Linear-space NLS replaces log-space regression: unbiased when loss has additive baseline (irreducible entropy)
+- fit_power_law() parametrizes optimization as [log10(k), a, l_inf] with bounds [-10,5] x [-1,2] x [0,inf]
+- Test x range for l_inf recovery must be small enough that l_inf is a significant fraction of y_min (logspace(1,5) not logspace(10,20))
 
 ### Pending Todos
 
@@ -86,5 +90,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-17
-Stopped at: Completed 04-02-PLAN.md (training execution in find_optimal). 144 tests passing. Ready for Phase 5.
+Stopped at: Completed 05-01-PLAN.md (linear-space NLS fitting with l_inf and IQR outlier detection). 152 tests passing.
 Resume file: None
