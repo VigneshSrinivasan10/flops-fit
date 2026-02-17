@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-16)
 
 **Core value:** Given a compute budget, tell the user exactly how big their model should be and how much data to train on -- for their specific architecture and dataset.
-**Current focus:** Phase 5 in progress. Linear-space NLS fitting with l_inf and IQR outlier detection complete.
+**Current focus:** Phase 5 complete. ScalingAnalysis with chinchilla_table() and linear-space NLS fitting fully implemented. 159 tests passing.
 
 ## Current Position
 
-Phase: 5 of 9 (Analysis and Fitting) -- IN PROGRESS
-Plan: 1/? complete
-Status: fit_power_law() refactored to linear-space NLS with l_inf and IQR outlier detection. 152 tests passing.
-Last activity: 2026-02-17 -- 05-01 complete: linear-space NLS fitting with l_inf and IQR outlier detection
+Phase: 5 of 9 (Analysis and Fitting) -- COMPLETE
+Plan: 2/2 complete
+Status: ScalingAnalysis.chinchilla_table() added; all Phase 5 success criteria met (ANLZ-01, ANLZ-02, ANLZ-03). 159 tests passing.
+Last activity: 2026-02-17 -- 05-02 complete: chinchilla_table() and l_inf-aware loss prediction
 
-Progress: [█████░░░░░] 50%
+Progress: [█████░░░░░] 55%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
-- Average duration: ~8min
-- Total execution time: ~79min
+- Total plans completed: 11
+- Average duration: ~7.5min
+- Total execution time: ~81min
 
 **By Phase:**
 
@@ -32,11 +32,11 @@ Progress: [█████░░░░░] 50%
 | 02-dataset-and-loss | 2/2 | ~4min | ~2min |
 | 03-sweep-planning | 2/2 | ~5min | ~2.5min |
 | 04-training-engine | 2/2 | ~4min | ~2min |
-| 05-analysis-and-fitting | 1/? | ~18min | ~18min |
+| 05-analysis-and-fitting | 2/2 | ~20min | ~10min |
 
 **Recent Trend:**
-- Last 3 plans: 04-01 (~2min), 04-02 (~2min), 05-01 (~18min)
-- Trend: 05-01 longer due to TDD + debugging initial guess bounds issue
+- Last 3 plans: 04-02 (~2min), 05-01 (~18min), 05-02 (~2min)
+- Trend: 05-02 fast (straightforward TDD, no implementation complexity)
 
 *Updated after each plan completion*
 
@@ -77,6 +77,8 @@ Recent decisions affecting current work:
 - Linear-space NLS replaces log-space regression: unbiased when loss has additive baseline (irreducible entropy)
 - fit_power_law() parametrizes optimization as [log10(k), a, l_inf] with bounds [-10,5] x [-1,2] x [0,inf]
 - Test x range for l_inf recovery must be small enough that l_inf is a significant fraction of y_min (logspace(1,5) not logspace(10,20))
+- chinchilla_table() defaults to np.logspace(18, 22, 9): 9 log-spaced budgets from 1e18 to 1e22
+- predict_optimal_size() l_inf propagation correct via PowerLawFit.predict() from Plan 01 (no extra code needed)
 
 ### Pending Todos
 
@@ -90,5 +92,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-17
-Stopped at: Completed 05-01-PLAN.md (linear-space NLS fitting with l_inf and IQR outlier detection). 152 tests passing.
+Stopped at: Completed 05-02-PLAN.md (chinchilla_table() and l_inf-aware loss prediction). 159 tests passing.
 Resume file: None
