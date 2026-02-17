@@ -136,11 +136,11 @@ Plans:
   1. A ViT + CIFAR example script uses `flops_fit.find_optimal()` to produce scaling law predictions for image classification
   2. The ViT model conforms to the same model interface as GPT (model class + size param + num_params)
   3. The library handles image data (pixel tensors) without any text-specific assumptions in the core
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 08-01: TBD
-- [ ] 08-02: TBD
+- [ ] 08-01-PLAN.md — ViT model (vit.py), CIFAR-10 dataset (cifar.py), vit_loss_fn, examples/__init__.py exports
+- [ ] 08-02-PLAN.md — example_vit_cifar.py demo script + ViT test classes in test_examples.py
 
 ### Phase 9: Multi-GPU Data Parallelism
 **Goal**: Users with multiple GPUs can run sweeps faster via data parallelism
@@ -170,5 +170,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9
 | 5. Analysis and Fitting | 3/3 | Complete | 2026-02-17 |
 | 6. Results Object and API Integration | 2/2 | Complete | 2026-02-17 |
 | 7. GPT + TinyStories Example | 2/2 | Complete | 2026-02-17 |
-| 8. ViT + CIFAR Example | 0/TBD | Not started | - |
+| 8. ViT + CIFAR Example | 0/2 | Not started | - |
 | 9. Multi-GPU Data Parallelism | 0/TBD | Not started | - |
