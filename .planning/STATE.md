@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-02-16)
 
 ## Current Position
 
-Phase: 4 of 9 (Training Engine) -- IN PROGRESS
-Plan: 1/2 complete
-Status: _local_train(), run_experiment_from_sweep(), run_sweep_from_plan() implemented. 139 tests passing.
-Last activity: 2026-02-17 -- 04-01 complete: local training loop with device placement and Chinchilla FLOPs
+Phase: 4 of 9 (Training Engine) -- COMPLETE
+Plan: 2/2 complete
+Status: find_optimal() wired to execute training; list[dict] results returned; resume and output_dir supported. 144 tests passing.
+Last activity: 2026-02-17 -- 04-02 complete: training execution wired into find_optimal() API
 
-Progress: [████░░░░░░] 38%
+Progress: [█████░░░░░] 44%
 
 ## Performance Metrics
 
@@ -31,7 +31,7 @@ Progress: [████░░░░░░] 38%
 | 01-skeleton | 1/1 | ~2min | ~2min |
 | 02-dataset-and-loss | 2/2 | ~4min | ~2min |
 | 03-sweep-planning | 2/2 | ~5min | ~2.5min |
-| 04-training-engine | 1/2 | ~2min | ~2min |
+| 04-training-engine | 2/2 | ~4min | ~2min |
 
 **Recent Trend:**
 - Last 3 plans: 02-02 (~2min), 03-01 (~3min), 03-02 (~2min)
@@ -70,6 +70,9 @@ Recent decisions affecting current work:
 - SGD optimizer with lr=0.01 default for local training (scaling law experiments need loss signal, not optimized convergence)
 - Model cleanup: del model + torch.cuda.empty_cache() after each experiment to prevent GPU OOM across sweeps
 - run_sweep_from_plan returns list[dict] (matching existing run_sweep() API) for consistency
+- Lazy-import TrainingRunner inside training branch to avoid circular imports and keep startup fast
+- train=True default makes training the happy path when dataset+loss_fn provided (explicit opt-out via train=False)
+- output_dir defaults to 'outputs' (string not Path) so TrainingRunner handles Path conversion internally
 
 ### Pending Todos
 
@@ -83,5 +86,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-17
-Stopped at: Completed 04-01-PLAN.md (local training loop). 139 tests passing. Ready for 04-02.
+Stopped at: Completed 04-02-PLAN.md (training execution in find_optimal). 144 tests passing. Ready for Phase 5.
 Resume file: None
