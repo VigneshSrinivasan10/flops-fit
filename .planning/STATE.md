@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-16)
 
 **Core value:** Given a compute budget, tell the user exactly how big their model should be and how much data to train on -- for their specific architecture and dataset.
-**Current focus:** Phase 5 complete (including gap closure 05-03). ScalingLawAnalyzer.predict() now correctly includes l_inf. 160 tests passing.
+**Current focus:** Phase 6 plan 01 complete. Result facade dataclass created. 169 tests passing.
 
 ## Current Position
 
-Phase: 5 of 9 (Analysis and Fitting) -- COMPLETE (3/3 plans, including gap closure)
-Plan: 3/3 complete
-Status: ScalingLawAnalyzer.predict() l_inf bug fixed; all 160 tests passing.
-Last activity: 2026-02-17 -- 05-03 complete: l_inf propagation fix in ScalingLawAnalyzer.predict()
+Phase: 6 of 9 (Results Object and API Integration) -- IN PROGRESS (1/2 plans complete)
+Plan: 1/2 complete
+Status: Result dataclass implemented; 169 tests passing.
+Last activity: 2026-02-17 -- 06-01 complete: Result facade dataclass with chinchilla_table/predict/plot
 
-Progress: [█████░░░░░] 55%
+Progress: [██████░░░░] 60%
 
 ## Performance Metrics
 
@@ -33,6 +33,7 @@ Progress: [█████░░░░░] 55%
 | 03-sweep-planning | 2/2 | ~5min | ~2.5min |
 | 04-training-engine | 2/2 | ~4min | ~2min |
 | 05-analysis-and-fitting | 3/3 | ~22min | ~7min |
+| 06-results-object-and-api-integration | 1/2 | ~2min | ~2min |
 
 **Recent Trend:**
 - Last 3 plans: 05-01 (~18min), 05-02 (~2min), 05-03 (~2min)
@@ -80,6 +81,8 @@ Recent decisions affecting current work:
 - chinchilla_table() defaults to np.logspace(18, 22, 9): 9 log-spaced budgets from 1e18 to 1e22
 - predict_optimal_size() l_inf propagation correct via PowerLawFit.predict() from Plan 01 (no extra code needed)
 - Use l_fit.get('l_inf') or 0 not l_fit.get('l_inf', 0): JSON null deserializes to Python None, and .get('l_inf', 0) returns None for null while 'or 0' correctly coerces None to 0
+- Result is a pure facade: chinchilla_table/predict/plot all delegate to Phase 5 components (ScalingAnalysis, ScalingVisualizer), no reimplementation
+- test_chinchilla_table_with_custom_budgets counts data rows by line filtering (not '|---' substring count; separator row has 5 occurrences of '|---', one per column)
 
 ### Pending Todos
 
@@ -93,5 +96,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-17
-Stopped at: Completed 05-03-PLAN.md (l_inf propagation fix in ScalingLawAnalyzer.predict()). 160 tests passing.
+Stopped at: Completed 06-01-PLAN.md (Result facade dataclass). 169 tests passing.
 Resume file: None
