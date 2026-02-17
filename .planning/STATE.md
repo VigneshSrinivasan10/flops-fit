@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-02-16)
 
 ## Current Position
 
-Phase: 6 of 9 (Results Object and API Integration) -- COMPLETE (2/2 plans complete)
-Plan: 2/2 complete
-Status: find_optimal() chains train->analyze->visualize->Result; 169 tests passing.
-Last activity: 2026-02-17 -- 06-02 complete: find_optimal() returns Result after training
+Phase: 7 of 9 (GPT + TinyStories Example) -- IN PROGRESS (1/3 plans complete)
+Plan: 1/3 complete
+Status: examples package created; GPT with num_params() contract; TinyStoriesDataset lazy-loader; 169 tests passing.
+Last activity: 2026-02-17 -- 07-01 complete: examples package with GPT + TinyStoriesDataset
 
-Progress: [███████░░░] 67%
+Progress: [████████░░] 74%
 
 ## Performance Metrics
 
@@ -34,6 +34,7 @@ Progress: [███████░░░] 67%
 | 04-training-engine | 2/2 | ~4min | ~2min |
 | 05-analysis-and-fitting | 3/3 | ~22min | ~7min |
 | 06-results-object-and-api-integration | 2/2 | ~6min | ~3min |
+| 07-gpt-and-tinystories-example | 1/3 | ~4min | ~4min |
 
 **Recent Trend:**
 - Last 3 plans: 05-01 (~18min), 05-02 (~2min), 05-03 (~2min)
@@ -85,6 +86,9 @@ Recent decisions affecting current work:
 - test_chinchilla_table_with_custom_budgets counts data rows by line filtering (not '|---' substring count; separator row has 5 occurrences of '|---', one per column)
 - Analyzer requires 2+ distinct compute budget levels for power law fitting; integration tests use 5 budgets [1e8, 3e8, 1e9, 3e9, 1e10]
 - find_optimal() training branch chains: run_sweep_from_plan() -> ScalingLawAnalyzer.analyze() -> Result(analysis, visualizer); results.json written as side effect
+- GPT implementation lives in examples/gpt.py; model.py is thin backward-compat re-export facade
+- num_params() is the primary contract method (returns all params, not just non-embedding)
+- datasets/transformers lazy-imported inside prepare_data() only -- zero import-time overhead for TinyStoriesDataset
 
 ### Pending Todos
 
@@ -98,5 +102,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-17
-Stopped at: Completed 06-02-PLAN.md (find_optimal() returns Result after training). 169 tests passing.
+Stopped at: Completed 07-01-PLAN.md (examples package with GPT + TinyStoriesDataset). 169 tests passing.
 Resume file: None
