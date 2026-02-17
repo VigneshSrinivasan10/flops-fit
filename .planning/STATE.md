@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-16)
 
 **Core value:** Given a compute budget, tell the user exactly how big their model should be and how much data to train on -- for their specific architecture and dataset.
-**Current focus:** Phase 3 in progress. Sweep planning module implemented, API integration next.
+**Current focus:** Phase 3 complete. Sweep planning wired into find_optimal() API. Ready for Phase 4.
 
 ## Current Position
 
-Phase: 3 of 9 (Sweep Planning) -- IN PROGRESS
-Plan: 1/2 complete
-Status: plan_sweep() implemented with probe-based IsoFLOP grid generation. Ready for 03-02 API integration.
-Last activity: 2026-02-17 -- 03-01 complete: sweep.py with Experiment, SweepPlan, plan_sweep() (16 tests)
+Phase: 3 of 9 (Sweep Planning) -- COMPLETE
+Plan: 2/2 complete
+Status: find_optimal() returns SweepPlan when compute_budgets provided. 133 tests passing.
+Last activity: 2026-02-17 -- 03-02 complete: API integration with 6 new integration tests
 
-Progress: [██░░░░░░░░] 22%
+Progress: [███░░░░░░░] 33%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
+- Total plans completed: 8
 - Average duration: ~8min
-- Total execution time: ~59min
+- Total execution time: ~61min
 
 **By Phase:**
 
@@ -30,10 +30,10 @@ Progress: [██░░░░░░░░] 22%
 | 01-baseline | 3/3 | ~50min | ~17min |
 | 01-skeleton | 1/1 | ~2min | ~2min |
 | 02-dataset-and-loss | 2/2 | ~4min | ~2min |
-| 03-sweep-planning | 1/2 | ~3min | ~3min |
+| 03-sweep-planning | 2/2 | ~5min | ~2.5min |
 
 **Recent Trend:**
-- Last 3 plans: 02-01 (~2min), 02-02 (~2min), 03-01 (~3min)
+- Last 3 plans: 02-02 (~2min), 03-01 (~3min), 03-02 (~2min)
 - Trend: Consistent
 
 *Updated after each plan completion*
@@ -78,5 +78,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-17
-Stopped at: Completed 03-01-PLAN.md (sweep planning module). Ready for 03-02 API integration.
+Stopped at: Completed 03-02-PLAN.md (API integration). Phase 3 complete. Ready for Phase 4.
 Resume file: None
