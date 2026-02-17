@@ -22,6 +22,7 @@ __version__ = "0.1.0"
 
 from flops_fit.api import find_optimal
 from flops_fit.model import GPT, GPTConfig, create_model_for_scaling, estimate_model_flops
+from flops_fit.sweep import SweepPlan, Experiment, plan_sweep
 from flops_fit.planner import SweepPlanner
 from flops_fit.trainer import TrainingRunner
 from flops_fit.analyzer import ScalingLawAnalyzer
@@ -35,6 +36,10 @@ __all__ = [
     "GPTConfig",
     "create_model_for_scaling",
     "estimate_model_flops",
+    # Sweep Planning
+    "SweepPlan",
+    "Experiment",
+    "plan_sweep",
     # Pipeline
     "SweepPlanner",
     "TrainingRunner",

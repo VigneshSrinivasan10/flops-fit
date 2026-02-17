@@ -6,6 +6,7 @@ Provides the find_optimal() entry point for computing-optimal model sizing.
 from flops_fit.data import validate_dataset
 from flops_fit.loss import validate_loss_fn
 from flops_fit.model_factory import validate_model_contract
+from flops_fit.sweep import plan_sweep
 
 
 def find_optimal(
@@ -38,13 +39,15 @@ def find_optimal(
         **kwargs: Additional configuration options for future phases.
 
     Returns:
-        Result object with scaling law predictions (Phase 6).
+        SweepPlan: When ``compute_budgets`` is provided, returns an
+            inspectable experiment grid (IsoFLOPs sweep plan) that
+            the user can review before committing to training.
 
     Raises:
         TypeError: If model_cls doesn't meet the model contract.
         ValueError: If model parameters are invalid.
-        NotImplementedError: After successful validation (full pipeline
-            not yet implemented).
+        NotImplementedError: When ``compute_budgets`` is not provided
+            (full training pipeline not yet implemented).
     """
     if model_kwargs is None:
         model_kwargs = {}
@@ -60,8 +63,17 @@ def find_optimal(
     if loss_fn is not None:
         validate_loss_fn(loss_fn)
 
-    # Phase 1: Model creation works
-    # Phase 2+: Actual sweep execution
+    # Phase 3: Generate and return sweep plan
+    if compute_budgets is not None:
+        plan = plan_sweep(
+            model_cls=model_cls,
+            size_param=model_size_param,
+            model_kwargs=model_kwargs,
+            compute_budgets=compute_budgets,
+        )
+        return plan
+
+    # Full training pipeline not yet implemented
     raise NotImplementedError(
         "find_optimal() model validation passed. "
         "Full pipeline not yet implemented."
