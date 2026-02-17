@@ -114,6 +114,54 @@ class ScalingAnalysis:
             "tokens_per_param": d_opt / n_opt if n_opt > 0 else 0,
         }
     
+    def chinchilla_table(
+        self,
+        compute_budgets: list[float] | None = None,
+    ) -> str:
+        """
+        Generate Chinchilla-style table of optimal configurations.
+
+        For each compute budget, calls predict_optimal_size() and formats
+        the result as a markdown table row showing:
+        - Compute budget (scientific notation)
+        - Optimal model size N (integer, comma-separated)
+        - Optimal tokens D (integer, comma-separated)
+        - D/N ratio (1 decimal float)
+        - Predicted loss (4 decimal float)
+
+        Args:
+            compute_budgets: List of FLOPs values to tabulate. If None,
+                uses 9 log-spaced budgets from 1e18 to 1e22.
+
+        Returns:
+            Markdown-formatted table string (header + separator + data rows).
+        """
+        if compute_budgets is None:
+            compute_budgets = list(np.logspace(18, 22, 9))
+
+        header = (
+            "| Compute Budget | Optimal N | Optimal D | D/N Ratio | Predicted Loss |\n"
+            "|---|---|---|---|---|"
+        )
+
+        rows = [header]
+        for budget in compute_budgets:
+            pred = self.predict_optimal_size(budget)
+            n = pred["optimal_params"]
+            d = pred["optimal_tokens"]
+            ratio = pred["tokens_per_param"]
+            loss = pred["expected_loss"]
+            row = (
+                f"| {budget:.2e} "
+                f"| {n:,} "
+                f"| {d:,} "
+                f"| {ratio:.1f} "
+                f"| {loss:.4f} |"
+            )
+            rows.append(row)
+
+        return "\n".join(rows)
+
     def to_dict(self) -> dict:
         """Convert to dictionary for serialization."""
         return {
