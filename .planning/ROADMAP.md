@@ -91,11 +91,11 @@ Plans:
   2. Outlier experiments are automatically detected and excluded before fitting
   3. Chinchilla table output shows optimal N, D, and predicted loss for a range of compute budgets
   4. Fitting uses linear-space nonlinear least squares (not log-space) with irreducible loss term
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 05-01: TBD
-- [ ] 05-02: TBD
+- [ ] 05-01-PLAN.md — TDD: linear-space NLS fitting with l_inf and IQR outlier detection in analyzer.py
+- [ ] 05-02-PLAN.md — TDD: chinchilla_table() on ScalingAnalysis and l_inf-aware loss prediction
 
 ### Phase 6: Results Object and API Integration
 **Goal**: `flops_fit.find_optimal()` works end-to-end and returns a Result object with table, plot, and predict methods
