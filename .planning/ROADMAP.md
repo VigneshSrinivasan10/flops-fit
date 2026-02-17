@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 4: Training Engine** - GPU-aware training loop consuming the library interfaces
 - [x] **Phase 5: Analysis and Fitting** - Power law fitting with outlier detection and Chinchilla table output
 - [x] **Phase 6: Results Object and API Integration** - Wire `find_optimal()` end-to-end with Result object
-- [ ] **Phase 7: GPT + TinyStories Example** - Refactor existing GPT as library example with CLI wrapper
+- [x] **Phase 7: GPT + TinyStories Example** - Refactor existing GPT as library example with CLI wrapper
 - [ ] **Phase 8: ViT + CIFAR Example** - Second modality proving architecture-agnostic design
 - [ ] **Phase 9: Multi-GPU Data Parallelism** - Accelerate-based multi-GPU support
 
@@ -125,8 +125,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 07-01-PLAN.md — Create examples/ package: GPT (moved + n() contract), TinyStoriesDataset (lazy-load), model.py re-export
-- [ ] 07-02-PLAN.md — Example scripts (programmatic + CLI wrapper) and tests/test_examples.py with mocked HuggingFace
+- [x] 07-01-PLAN.md — Create examples/ package: GPT (moved + n() contract), TinyStoriesDataset (lazy-load), model.py re-export
+- [x] 07-02-PLAN.md — Example scripts (programmatic + CLI wrapper) and tests/test_examples.py with mocked HuggingFace
 
 ### Phase 8: ViT + CIFAR Example
 **Goal**: A second architecture and modality proves the library is truly architecture-agnostic
@@ -169,6 +169,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9
 | 4. Training Engine | 0/TBD | Not started | - |
 | 5. Analysis and Fitting | 3/3 | Complete | 2026-02-17 |
 | 6. Results Object and API Integration | 2/2 | Complete | 2026-02-17 |
-| 7. GPT + TinyStories Example | 0/2 | Not started | - |
+| 7. GPT + TinyStories Example | 2/2 | Complete | 2026-02-17 |
 | 8. ViT + CIFAR Example | 0/TBD | Not started | - |
 | 9. Multi-GPU Data Parallelism | 0/TBD | Not started | - |

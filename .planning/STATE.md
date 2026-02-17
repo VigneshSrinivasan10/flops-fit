@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-16)
 
 **Core value:** Given a compute budget, tell the user exactly how big their model should be and how much data to train on -- for their specific architecture and dataset.
-**Current focus:** Phase 6 complete. find_optimal() returns Result after training. 169 tests passing.
+**Current focus:** Phase 7 complete. GPT examples package + example scripts + 188 tests passing.
 
 ## Current Position
 
-Phase: 7 of 9 (GPT + TinyStories Example) -- IN PROGRESS (2/3 plans complete)
-Plan: 2/3 complete
-Status: mode param added to find_optimal(); example_programmatic.py and example_cli_wrapper.py created; 188 tests passing.
+Phase: 7 of 9 (GPT + TinyStories Example) -- COMPLETE (2/2 plans complete)
+Plan: 2/2 complete
+Status: examples/ package with GPT (num_params()) + TinyStoriesDataset; example scripts + mode param; 188 tests passing.
 Last activity: 2026-02-17 -- 07-02 complete: mode parameter + example scripts + test_examples.py
 
-Progress: [████████░░] 77%
+Progress: [████████░░] 78%
 
 ## Performance Metrics
 
