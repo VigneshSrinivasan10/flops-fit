@@ -309,3 +309,127 @@ class TestScalingAnalysis:
         assert "optimal_ratio" in d
         assert d["optimal_ratio"] == 20.0
         assert len(d["optimal_points"]) == 1
+
+
+class TestPowerLawFitLinearSpace:
+    """Test suite for linear-space power law fitting with irreducible loss (l_inf)."""
+
+    def test_fit_power_law_with_irreducible_loss(self, tmp_path):
+        """fit_power_law recovers l_inf and exponent from data with a known baseline."""
+        analyzer = ScalingLawAnalyzer(
+            results_path=tmp_path / "r.json",
+            output_dir=tmp_path / "a",
+        )
+        np.random.seed(0)
+        x = np.logspace(10, 20, 20)
+        y = 1.5 + 0.1 * np.power(x, 0.5) * np.random.uniform(0.95, 1.05, 20)
+        fit = analyzer.fit_power_law(x, y, "L_opt")
+        assert fit.l_inf is not None
+        assert fit.l_inf == pytest.approx(1.5, abs=0.5)
+        assert fit.exponent_a == pytest.approx(0.5, abs=0.15)
+        assert fit.r_squared > 0.95
+
+    def test_fit_power_law_l_inf_stored_in_result(self, tmp_path):
+        """fit_power_law always returns a PowerLawFit with l_inf attribute set."""
+        analyzer = ScalingLawAnalyzer(
+            results_path=tmp_path / "r.json",
+            output_dir=tmp_path / "a",
+        )
+        np.random.seed(1)
+        x = np.logspace(12, 20, 15)
+        y = 2.0 + 0.05 * np.power(x, 0.4)
+        fit = analyzer.fit_power_law(x, y, "test")
+        assert hasattr(fit, "l_inf")
+        assert fit.l_inf is not None
+        assert fit.l_inf >= 0
+
+    def test_power_law_fit_predict_with_l_inf(self):
+        """predict() adds l_inf when l_inf is set on the fit."""
+        fit = PowerLawFit(
+            name="L_opt",
+            coefficient_k=2.0,
+            exponent_a=0.5,
+            r_squared=0.99,
+            l_inf=1.0,
+        )
+        result = fit.predict(np.array([4.0]))
+        # 1.0 + 2.0 * sqrt(4) = 1.0 + 4.0 = 5.0
+        assert result[0] == pytest.approx(5.0)
+
+    def test_power_law_fit_predict_without_l_inf_backward_compat(self):
+        """predict() is unchanged when l_inf is None (backward compatibility)."""
+        fit = PowerLawFit(
+            name="N_opt",
+            coefficient_k=2.0,
+            exponent_a=0.5,
+            r_squared=0.99,
+        )
+        result = fit.predict(np.array([4.0]))
+        # 2.0 * sqrt(4) = 4.0
+        assert result[0] == pytest.approx(4.0)
+
+    def test_power_law_fit_to_dict_includes_l_inf(self):
+        """to_dict() includes l_inf key when l_inf is set."""
+        fit = PowerLawFit(
+            name="L_opt",
+            coefficient_k=1.0,
+            exponent_a=-0.1,
+            r_squared=0.95,
+            l_inf=2.5,
+        )
+        d = fit.to_dict()
+        assert "l_inf" in d
+        assert d["l_inf"] == pytest.approx(2.5)
+
+
+class TestOutlierDetection:
+    """Test suite for IQR-based outlier detection in fit_power_law()."""
+
+    def test_outlier_detection_excludes_anomalous_points(self, tmp_path):
+        """Fitting with exclude_outliers=True achieves higher R² than without it on contaminated data."""
+        analyzer = ScalingLawAnalyzer(
+            results_path=tmp_path / "r.json",
+            output_dir=tmp_path / "a",
+        )
+        np.random.seed(42)
+        x = np.logspace(10, 20, 20)
+        y_clean = 1.5 + 0.1 * np.power(x, 0.5) * np.random.uniform(0.97, 1.03, 20)
+        y_with_outliers = y_clean.copy()
+        y_with_outliers[5] = y_clean[5] * 10
+        y_with_outliers[12] = y_clean[12] * 8
+
+        fit_all = analyzer.fit_power_law(x, y_with_outliers, "test", exclude_outliers=False)
+        fit_clean = analyzer.fit_power_law(x, y_with_outliers, "test", exclude_outliers=True)
+
+        # Outlier removal should improve fit quality
+        assert fit_clean.r_squared > fit_all.r_squared
+
+    def test_outlier_detection_disabled_when_exclude_outliers_false(self, tmp_path):
+        """fit_all (exclude_outliers=False) should have lower R² than fit_clean on contaminated data."""
+        analyzer = ScalingLawAnalyzer(
+            results_path=tmp_path / "r.json",
+            output_dir=tmp_path / "a",
+        )
+        np.random.seed(42)
+        x = np.logspace(10, 20, 20)
+        y_clean = 1.5 + 0.1 * np.power(x, 0.5) * np.random.uniform(0.97, 1.03, 20)
+        y_with_outliers = y_clean.copy()
+        y_with_outliers[5] = y_clean[5] * 10
+        y_with_outliers[12] = y_clean[12] * 8
+
+        fit_all = analyzer.fit_power_law(x, y_with_outliers, "test", exclude_outliers=False)
+        fit_clean = analyzer.fit_power_law(x, y_with_outliers, "test", exclude_outliers=True)
+
+        assert fit_all.r_squared < fit_clean.r_squared
+
+    def test_outlier_detection_skipped_when_fewer_than_5_points(self, tmp_path):
+        """fit_power_law with fewer than 5 points skips outlier detection and succeeds."""
+        analyzer = ScalingLawAnalyzer(
+            results_path=tmp_path / "r.json",
+            output_dir=tmp_path / "a",
+        )
+        x = np.logspace(10, 14, 4)
+        y = 1.5 + 0.1 * np.power(x, 0.5)
+        # Should not raise -- just fits without outlier removal
+        fit = analyzer.fit_power_law(x, y, "test", exclude_outliers=True)
+        assert fit is not None
