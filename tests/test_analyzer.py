@@ -286,6 +286,22 @@ class TestScalingAnalysis:
         assert result["optimal_tokens"] == int(1e10)
         assert result["target_compute"] == 1e20
 
+    def test_predict_optimal_size_uses_l_inf_for_loss(self):
+        """predict_optimal_size() propagates l_inf through to expected_loss."""
+        l_fit = PowerLawFit(name="L_opt", coefficient_k=2.0, exponent_a=0.5, r_squared=0.99, l_inf=1.0)
+        n_fit = PowerLawFit(name="N_opt", coefficient_k=1.0, exponent_a=0.5, r_squared=0.99)
+        d_fit = PowerLawFit(name="D_opt", coefficient_k=1.0, exponent_a=0.5, r_squared=0.99)
+        analysis = ScalingAnalysis(
+            n_opt_fit=n_fit,
+            d_opt_fit=d_fit,
+            l_opt_fit=l_fit,
+            optimal_points=[],
+            optimal_ratio=1.0,
+        )
+        result = analysis.predict_optimal_size(4.0)
+        # l_inf=1.0 + k=2.0 * 4.0^0.5 = 1.0 + 4.0 = 5.0
+        assert result["expected_loss"] == pytest.approx(5.0)
+
     def test_to_dict(self):
         """to_dict returns correct structure with all expected keys."""
         n_fit = PowerLawFit(name="N_opt", coefficient_k=1.0, exponent_a=0.5, r_squared=0.99)
@@ -387,6 +403,90 @@ class TestPowerLawFitLinearSpace:
         d = fit.to_dict()
         assert "l_inf" in d
         assert d["l_inf"] == pytest.approx(2.5)
+
+
+class TestChinchillaTable:
+    """Test suite for ScalingAnalysis.chinchilla_table()."""
+
+    def _make_analysis(self) -> ScalingAnalysis:
+        n_fit = PowerLawFit(name="N_opt", coefficient_k=1e6, exponent_a=0.5, r_squared=0.99)
+        d_fit = PowerLawFit(name="D_opt", coefficient_k=2e7, exponent_a=0.5, r_squared=0.99)
+        l_fit = PowerLawFit(name="L_opt", coefficient_k=0.1, exponent_a=-0.05, r_squared=0.99, l_inf=1.5)
+        return ScalingAnalysis(
+            n_opt_fit=n_fit,
+            d_opt_fit=d_fit,
+            l_opt_fit=l_fit,
+            optimal_points=[],
+            optimal_ratio=20.0,
+        )
+
+    def test_chinchilla_table_returns_string(self):
+        """chinchilla_table() returns a string."""
+        analysis = self._make_analysis()
+        table = analysis.chinchilla_table()
+        assert isinstance(table, str)
+
+    def test_chinchilla_table_default_has_9_rows(self):
+        """chinchilla_table() default produces 11 lines (header + separator + 9 data rows)."""
+        analysis = self._make_analysis()
+        table = analysis.chinchilla_table()
+        lines = table.strip().split("\n")
+        # header + separator + 9 data rows = 11 lines
+        assert len(lines) == 11
+
+    def test_chinchilla_table_custom_budgets(self):
+        """chinchilla_table() with custom budgets produces correct number of data rows."""
+        analysis = self._make_analysis()
+        table = analysis.chinchilla_table(compute_budgets=[1e18, 1e20, 1e22])
+        lines = table.strip().split("\n")
+        # header + separator + 3 data rows = 5 lines
+        assert len(lines) == 5
+
+    def test_chinchilla_table_contains_header(self):
+        """chinchilla_table() output contains all expected column headers."""
+        analysis = self._make_analysis()
+        table = analysis.chinchilla_table()
+        assert "Compute Budget" in table
+        assert "Optimal N" in table
+        assert "Optimal D" in table
+        assert "Predicted Loss" in table
+
+    def test_chinchilla_table_values_from_predict(self):
+        """chinchilla_table() row values match predict_optimal_size() output."""
+        analysis = self._make_analysis()
+        table = analysis.chinchilla_table(compute_budgets=[1e20])
+        pred = analysis.predict_optimal_size(1e20)
+        # Expected loss should appear in table (formatted to 4 decimals)
+        assert f"{pred['expected_loss']:.4f}" in table
+
+    def test_chinchilla_table_end_to_end(self, tmp_path):
+        """End-to-end: planner -> trainer (mock) -> analyzer -> chinchilla_table()."""
+        planner = SweepPlanner(
+            min_flops=1e17,
+            max_flops=1e21,
+            num_compute_budgets=5,
+            num_model_sizes=7,
+        )
+        sweep_path = tmp_path / "sweep.json"
+        planner.save_sweep(sweep_path)
+
+        runner = TrainingRunner(
+            mode="mock",
+            sweep_path=sweep_path,
+            output_dir=tmp_path,
+        )
+        np.random.seed(42)
+        runner.run_sweep(resume=False)
+
+        analyzer = ScalingLawAnalyzer(
+            results_path=tmp_path / "results.json",
+            output_dir=tmp_path / "analysis",
+        )
+        analysis = analyzer.analyze()
+        table = analysis.chinchilla_table(compute_budgets=[1e18, 1e19, 1e20])
+        assert isinstance(table, str)
+        assert "Compute Budget" in table
+        assert len(table.split("\n")) >= 5
 
 
 class TestOutlierDetection:
