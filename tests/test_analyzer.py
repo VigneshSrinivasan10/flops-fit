@@ -260,6 +260,57 @@ class TestScalingLawAnalyzer:
         with pytest.raises(ValueError, match="Not enough valid points"):
             analyzer.fit_power_law(x, y, "test")
 
+    def test_analyzer_predict_includes_l_inf(self, tmp_path):
+        """predict() expected_loss must include l_inf from saved scaling_laws.json.
+
+        ScalingLawAnalyzer.predict() manually reconstructs the power law from
+        the JSON dict. If it forgets to add l_inf, it returns the bare power-law
+        value instead of l_inf + k * C^a.
+
+        Setup: write a known scaling_laws.json with l_opt_fit.l_inf=1.5,
+        coefficient_k=2.0, exponent_a=0.5.
+        For target_compute=4.0: expected = 1.5 + 2.0 * 4.0^0.5 = 1.5 + 4.0 = 5.5.
+        Without the fix the code returns 4.0, not 5.5.
+        """
+        analysis_dir = tmp_path / "analysis"
+        analysis_dir.mkdir(parents=True, exist_ok=True)
+
+        # Build a minimal scaling_laws.json with a known l_inf in l_opt_fit
+        def _fit_dict(name, k, a, l_inf=None):
+            return {
+                "name": name,
+                "coefficient_k": k,
+                "exponent_a": a,
+                "r_squared": 0.99,
+                "k_ci": None,
+                "a_ci": None,
+                "l_inf": l_inf,
+                "formula": f"{name} = {k} * C^{a}",
+            }
+
+        scaling_laws = {
+            "n_opt_fit": _fit_dict("N_opt", k=1.0, a=0.5),
+            "d_opt_fit": _fit_dict("D_opt", k=1.0, a=0.5),
+            "l_opt_fit": _fit_dict("L_opt", k=2.0, a=0.5, l_inf=1.5),
+            "optimal_points": [],
+            "optimal_ratio": 20.0,
+        }
+
+        scaling_laws_path = analysis_dir / "scaling_laws.json"
+        with open(scaling_laws_path, "w") as f:
+            json.dump(scaling_laws, f)
+
+        analyzer = ScalingLawAnalyzer(
+            results_path=tmp_path / "results.json",
+            output_dir=analysis_dir,
+        )
+
+        result = analyzer.predict(4.0)
+
+        # expected_loss must be l_inf + k * C^a = 1.5 + 2.0 * 4.0^0.5 = 5.5
+        # Current (unfixed) code returns 2.0 * 4.0^0.5 = 4.0 — this assertion fails.
+        assert result["expected_loss"] == pytest.approx(5.5)
+
 
 class TestScalingAnalysis:
     """Test suite for ScalingAnalysis dataclass."""
