@@ -5,6 +5,7 @@ import torch
 import torch.utils.data
 
 from flops_fit import find_optimal
+from flops_fit.sweep import SweepPlan
 
 
 class MockModel:
@@ -125,3 +126,57 @@ class TestFindOptimalLossValidation:
         """Bad dataset + bad loss_fn -> error about DATASET (validated before loss)."""
         with pytest.raises(TypeError, match="Expected a torch.utils.data.Dataset"):
             find_optimal(MockModel, "width", dataset="not_a_dataset", loss_fn=42)
+
+
+# ---------------------------------------------------------------------------
+# Sweep planning through find_optimal()
+# ---------------------------------------------------------------------------
+
+
+class TestFindOptimalSweepPlanning:
+    """Integration tests: sweep planning via find_optimal()."""
+
+    def test_returns_sweep_plan(self):
+        """compute_budgets triggers sweep planning, returns SweepPlan (not exception)."""
+        result = find_optimal(
+            MockModel,
+            "width",
+            model_kwargs={"num_layers": 4},
+            compute_budgets=[1e15, 1e16],
+        )
+        assert isinstance(result, SweepPlan)
+        assert result.num_experiments > 0
+        assert result.compute_budgets == [1e15, 1e16]
+
+    def test_no_compute_budgets_raises_not_implemented(self):
+        """Without compute_budgets, still raises NotImplementedError (backward compat)."""
+        with pytest.raises(NotImplementedError, match="model validation passed"):
+            find_optimal(MockModel, "width")
+
+    def test_compute_budgets_none_raises_not_implemented(self):
+        """Explicit compute_budgets=None behaves same as omitting it."""
+        with pytest.raises(NotImplementedError, match="model validation passed"):
+            find_optimal(MockModel, "width", compute_budgets=None)
+
+    def test_model_validated_before_sweep(self):
+        """Bad model + compute_budgets -> error about MODEL (validated first)."""
+        with pytest.raises(TypeError, match="num_params"):
+            find_optimal(BadModel, "width", compute_budgets=[1e15])
+
+    def test_dataset_validated_before_sweep(self):
+        """Bad dataset + compute_budgets -> error about DATASET (validated before sweep)."""
+        with pytest.raises(TypeError, match="Expected a torch.utils.data.Dataset"):
+            find_optimal(
+                MockModel, "width", dataset="not_a_dataset", compute_budgets=[1e15]
+            )
+
+    def test_loss_validated_before_sweep(self):
+        """Bad loss_fn + compute_budgets -> error about LOSS (validated before sweep)."""
+        with pytest.raises(TypeError, match="loss_fn must be callable"):
+            find_optimal(
+                MockModel,
+                "width",
+                dataset=TinyDataset(),
+                loss_fn=42,
+                compute_budgets=[1e15],
+            )
