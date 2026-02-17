@@ -436,6 +436,7 @@ class ScalingLawAnalyzer:
         n_opt = n_fit["coefficient_k"] * (target_compute ** n_fit["exponent_a"])
         d_opt = d_fit["coefficient_k"] * (target_compute ** d_fit["exponent_a"])
         l_opt = l_fit["coefficient_k"] * (target_compute ** l_fit["exponent_a"])
+        l_opt += l_fit.get("l_inf") or 0
         
         return {
             "target_compute": target_compute,
