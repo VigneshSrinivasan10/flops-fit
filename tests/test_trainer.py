@@ -8,6 +8,236 @@ import numpy as np
 from flops_fit.trainer import TrainingRunner, TrainingResult
 
 
+class TestLocalTraining:
+    """Tests for TrainingRunner mode='local' with real PyTorch."""
+
+    @pytest.fixture
+    def tiny_model_cls(self):
+        """A minimal nn.Module that satisfies the flops_fit contract."""
+        import torch
+        import torch.nn as nn
+
+        class TinyModel(nn.Module):
+            def __init__(self, width=8):
+                super().__init__()
+                self.linear = nn.Linear(4, 1)
+                self.width = width
+
+            def forward(self, x):
+                return self.linear(x)
+
+            def num_params(self):
+                return sum(p.numel() for p in self.parameters())
+
+        return TinyModel
+
+    @pytest.fixture
+    def tiny_dataset(self):
+        """A minimal Dataset returning (input, target) pairs."""
+        import torch
+        from torch.utils.data import Dataset
+
+        class TinyDataset(Dataset):
+            def __init__(self, n=64):
+                self.x = torch.randn(n, 4)
+                self.y = torch.randn(n, 1)
+
+            def __len__(self):
+                return len(self.x)
+
+            def __getitem__(self, idx):
+                return self.x[idx], self.y[idx]
+
+        return TinyDataset()
+
+    @pytest.fixture
+    def tiny_experiment(self):
+        """A minimal Experiment dataclass for testing."""
+        from flops_fit.sweep import Experiment
+        return Experiment(
+            experiment_id="exp_0000",
+            compute_budget=1e10,
+            size_param_value=8,
+            num_params=5,  # approximate; overridden by actual model
+            num_tokens=1000,
+            tokens_per_param=200.0,
+        )
+
+    def test_local_train_returns_loss_flops_walltime(
+        self, tmp_path, tiny_model_cls, tiny_dataset, tiny_experiment
+    ):
+        """_local_train() returns (loss, actual_flops, wall_time) with sensible values."""
+        import torch
+        runner = TrainingRunner(mode="local", output_dir=tmp_path)
+        loss, actual_flops, wall_time = runner._local_train(
+            experiment=tiny_experiment,
+            model_cls=tiny_model_cls,
+            size_param="width",
+            model_kwargs={},
+            dataset_or_loader=tiny_dataset,
+            loss_fn=torch.nn.MSELoss(),
+        )
+        assert isinstance(loss, float)
+        assert not (loss != loss)  # not NaN
+        assert actual_flops > 0
+        assert wall_time > 0
+
+    def test_local_train_actual_flops_uses_chinchilla_formula(
+        self, tmp_path, tiny_model_cls, tiny_dataset, tiny_experiment
+    ):
+        """actual_flops returned by _local_train() equals 6 * num_params * num_tokens."""
+        import torch
+        runner = TrainingRunner(mode="local", output_dir=tmp_path)
+        _, actual_flops, _ = runner._local_train(
+            experiment=tiny_experiment,
+            model_cls=tiny_model_cls,
+            size_param="width",
+            model_kwargs={},
+            dataset_or_loader=tiny_dataset,
+            loss_fn=torch.nn.MSELoss(),
+        )
+        # Formula: C = 6 * N * D; N from actual model, D from experiment.num_tokens
+        model = tiny_model_cls(width=tiny_experiment.size_param_value)
+        expected_n = model.num_params()
+        expected_flops = 6 * expected_n * tiny_experiment.num_tokens
+        assert actual_flops == pytest.approx(expected_flops, rel=0.01)
+
+    def test_local_train_uses_device_placement(
+        self, tmp_path, tiny_model_cls, tiny_dataset, tiny_experiment
+    ):
+        """_local_train() runs without errors (device placement happens internally)."""
+        import torch
+        runner = TrainingRunner(mode="local", output_dir=tmp_path)
+        # Should not raise regardless of whether CUDA is available
+        loss, _, _ = runner._local_train(
+            experiment=tiny_experiment,
+            model_cls=tiny_model_cls,
+            size_param="width",
+            model_kwargs={},
+            dataset_or_loader=tiny_dataset,
+            loss_fn=torch.nn.MSELoss(),
+        )
+        assert isinstance(loss, float)
+
+    def test_run_experiment_from_sweep_returns_training_result(
+        self, tmp_path, tiny_model_cls, tiny_dataset, tiny_experiment
+    ):
+        """run_experiment_from_sweep() returns a TrainingResult with status='completed'."""
+        import torch
+        runner = TrainingRunner(mode="local", output_dir=tmp_path)
+        result = runner.run_experiment_from_sweep(
+            experiment=tiny_experiment,
+            model_cls=tiny_model_cls,
+            size_param="width",
+            model_kwargs={},
+            dataset_or_loader=tiny_dataset,
+            loss_fn=torch.nn.MSELoss(),
+        )
+        assert isinstance(result, TrainingResult)
+        assert result.status == "completed"
+        assert result.experiment_id == tiny_experiment.experiment_id
+        assert result.compute_budget == tiny_experiment.compute_budget
+        assert not (result.final_loss != result.final_loss)  # not NaN
+        assert result.actual_flops > 0
+        assert result.wall_time_seconds > 0
+
+    def test_run_experiment_from_sweep_handles_failure(
+        self, tmp_path, tiny_experiment
+    ):
+        """run_experiment_from_sweep() returns status='failed' when model errors."""
+        import torch
+
+        class BrokenModel:
+            def __init__(self, width=8):
+                pass
+            def num_params(self):
+                return 5
+            def forward(self, x):
+                raise RuntimeError("deliberate failure")
+            def parameters(self):
+                return iter([])
+            def train(self):
+                pass
+            def to(self, device):
+                return self
+
+        runner = TrainingRunner(mode="local", output_dir=tmp_path)
+        result = runner.run_experiment_from_sweep(
+            experiment=tiny_experiment,
+            model_cls=BrokenModel,
+            size_param="width",
+            model_kwargs={},
+            dataset_or_loader=torch.utils.data.TensorDataset(
+                torch.randn(16, 4), torch.randn(16, 1)
+            ),
+            loss_fn=torch.nn.MSELoss(),
+        )
+        assert result.status == "failed"
+        assert result.error_message is not None
+
+    def test_resume_sweep_with_experiments_skips_completed(
+        self, tmp_path, tiny_model_cls, tiny_dataset
+    ):
+        """run_sweep_from_plan() skips experiments whose IDs are already in results.json."""
+        import json
+        import torch
+        from flops_fit.sweep import Experiment, SweepPlan
+
+        experiments = [
+            Experiment(
+                experiment_id=f"exp_{i:04d}",
+                compute_budget=1e10,
+                size_param_value=8,
+                num_params=5,
+                num_tokens=100,
+                tokens_per_param=20.0,
+            )
+            for i in range(3)
+        ]
+        plan = SweepPlan(
+            experiments=experiments,
+            model_cls_name="TinyModel",
+            size_param="width",
+            compute_budgets=[1e10],
+        )
+
+        # Pre-populate results.json with first experiment completed
+        existing = [
+            {
+                "experiment_id": "exp_0000",
+                "compute_budget": 1e10,
+                "model_size": 5,
+                "num_tokens": 100,
+                "final_loss": 1.23,
+                "actual_flops": 3000.0,
+                "wall_time_seconds": 0.01,
+                "timestamp": "2026-01-01T00:00:00",
+                "status": "completed",
+                "error_message": None,
+            }
+        ]
+        results_path = tmp_path / "results.json"
+        with open(results_path, "w") as f:
+            json.dump(existing, f)
+
+        runner = TrainingRunner(mode="local", output_dir=tmp_path)
+        results = runner.run_sweep_from_plan(
+            plan=plan,
+            model_cls=tiny_model_cls,
+            size_param="width",
+            model_kwargs={},
+            dataset_or_loader=tiny_dataset,
+            loss_fn=torch.nn.MSELoss(),
+            resume=True,
+        )
+
+        assert len(results) == 3
+        # First result is the pre-existing one (not re-run)
+        assert results[0]["final_loss"] == pytest.approx(1.23)
+        # All results are completed
+        assert all(r["status"] == "completed" for r in results)
+
+
 class TestTrainingRunner:
     """Test suite for TrainingRunner."""
 
