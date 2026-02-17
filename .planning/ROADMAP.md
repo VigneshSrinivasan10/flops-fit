@@ -60,11 +60,11 @@ Plans:
   1. Given compute budgets and a model interface, the library generates an IsoFLOP experiment grid with model sizes and token counts
   2. User can call a cost estimation method and see total estimated FLOPs across all planned experiments
   3. Sweep plan is inspectable as a data structure (not just printed output)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: TBD
-- [ ] 03-02: TBD
+- [ ] 03-01-PLAN.md — TDD: sweep.py with Experiment/SweepPlan dataclasses and plan_sweep()
+- [ ] 03-02-PLAN.md — Wire plan_sweep() into find_optimal() and export SweepPlan
 
 ### Phase 4: Training Engine
 **Goal**: The library can train models on GPU with automatic device placement and resume interrupted sweeps
