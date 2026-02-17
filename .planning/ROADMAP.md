@@ -122,11 +122,11 @@ Plans:
   2. A CLI wrapper example shows how to expose the library via command-line arguments
   3. The existing GPT model is importable from `flops_fit.examples.gpt` (or similar) without being part of the core library
   4. Running the example end-to-end produces scaling law predictions (in mock or CPU mode)
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 07-01: TBD
-- [ ] 07-02: TBD
+- [ ] 07-01-PLAN.md — Create examples/ package: GPT (moved + n() contract), TinyStoriesDataset (lazy-load), model.py re-export
+- [ ] 07-02-PLAN.md — Example scripts (programmatic + CLI wrapper) and tests/test_examples.py with mocked HuggingFace
 
 ### Phase 8: ViT + CIFAR Example
 **Goal**: A second architecture and modality proves the library is truly architecture-agnostic
@@ -169,6 +169,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9
 | 4. Training Engine | 0/TBD | Not started | - |
 | 5. Analysis and Fitting | 3/3 | Complete | 2026-02-17 |
 | 6. Results Object and API Integration | 2/2 | Complete | 2026-02-17 |
-| 7. GPT + TinyStories Example | 0/TBD | Not started | - |
+| 7. GPT + TinyStories Example | 0/2 | Not started | - |
 | 8. ViT + CIFAR Example | 0/TBD | Not started | - |
 | 9. Multi-GPU Data Parallelism | 0/TBD | Not started | - |
