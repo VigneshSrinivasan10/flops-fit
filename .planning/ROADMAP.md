@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 3: Sweep Planning** - Generate IsoFLOP experiment grids from compute budgets and model interface
 - [ ] **Phase 4: Training Engine** - GPU-aware training loop consuming the library interfaces
 - [x] **Phase 5: Analysis and Fitting** - Power law fitting with outlier detection and Chinchilla table output
-- [ ] **Phase 6: Results Object and API Integration** - Wire `find_optimal()` end-to-end with Result object
+- [x] **Phase 6: Results Object and API Integration** - Wire `find_optimal()` end-to-end with Result object
 - [ ] **Phase 7: GPT + TinyStories Example** - Refactor existing GPT as library example with CLI wrapper
 - [ ] **Phase 8: ViT + CIFAR Example** - Second modality proving architecture-agnostic design
 - [ ] **Phase 9: Multi-GPU Data Parallelism** - Accelerate-based multi-GPU support
@@ -168,7 +168,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9
 | 3. Sweep Planning | 0/TBD | Not started | - |
 | 4. Training Engine | 0/TBD | Not started | - |
 | 5. Analysis and Fitting | 3/3 | Complete | 2026-02-17 |
-| 6. Results Object and API Integration | 0/2 | Not started | - |
+| 6. Results Object and API Integration | 2/2 | Complete | 2026-02-17 |
 | 7. GPT + TinyStories Example | 0/TBD | Not started | - |
 | 8. ViT + CIFAR Example | 0/TBD | Not started | - |
 | 9. Multi-GPU Data Parallelism | 0/TBD | Not started | - |
