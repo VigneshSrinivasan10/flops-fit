@@ -17,6 +17,7 @@ def find_optimal(
     loss_fn=None,
     compute_budgets=None,
     train: bool = True,
+    mode: str = "local",
     output_dir: str = "outputs",
     resume: bool = True,
     **kwargs,
@@ -44,6 +45,10 @@ def find_optimal(
         train: If True (default) and ``dataset`` + ``loss_fn`` are both
             provided, executes training and returns results. If False, returns
             the SweepPlan for inspection without running training.
+        mode: Training runner mode. ``"local"`` runs real training (default,
+            preserves existing behavior). ``"mock"`` uses a no-op runner that
+            returns synthetic losses without GPU or data access — useful for
+            testing and demo scripts.
         output_dir: Directory to write ``results.json`` and experiment
             artifacts. Only used when ``train=True``. Defaults to
             ``"outputs"``.
@@ -96,7 +101,7 @@ def find_optimal(
             from flops_fit.visualizer import ScalingVisualizer
             from flops_fit.result import Result
 
-            runner = TrainingRunner(mode="local", output_dir=output_dir)
+            runner = TrainingRunner(mode=mode, output_dir=output_dir)
             runner.run_sweep_from_plan(
                 plan=plan,
                 model_cls=model_cls,

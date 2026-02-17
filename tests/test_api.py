@@ -332,3 +332,44 @@ class TestFindOptimalTraining:
         resumed_results = json.loads((tmp_path / "results.json").read_text())
         # Results file must contain same experiments (not doubled)
         assert resumed_results[0]["final_loss"] == pytest.approx(first_loss)
+
+
+# ---------------------------------------------------------------------------
+# mode parameter tests
+# ---------------------------------------------------------------------------
+
+
+class TestFindOptimalModeParameter:
+    """Tests verifying that find_optimal() accepts and threads through mode parameter."""
+
+    def test_mode_parameter_in_signature(self):
+        """find_optimal() signature includes mode with default 'local'."""
+        import inspect
+        sig = inspect.signature(find_optimal)
+        assert "mode" in sig.parameters
+        assert sig.parameters["mode"].default == "local"
+
+    def test_mode_local_no_regression(self):
+        """find_optimal(..., mode='local', train=False) returns SweepPlan (no regression)."""
+        result = find_optimal(
+            model_cls=MockModel,
+            model_size_param="width",
+            model_kwargs={"num_layers": 4},
+            compute_budgets=[1e12],
+            train=False,
+            mode="local",
+        )
+        assert isinstance(result, SweepPlan)
+
+    def test_mode_accepted_as_keyword(self):
+        """find_optimal() accepts mode keyword without TypeError."""
+        # Should not raise TypeError for unrecognized keyword
+        result = find_optimal(
+            model_cls=MockModel,
+            model_size_param="width",
+            model_kwargs={"num_layers": 4},
+            compute_budgets=[1e12],
+            train=False,
+            mode="mock",
+        )
+        assert isinstance(result, SweepPlan)
