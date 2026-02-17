@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-16)
 
 **Core value:** Given a compute budget, tell the user exactly how big their model should be and how much data to train on -- for their specific architecture and dataset.
-**Current focus:** Phase 5 complete. ScalingAnalysis with chinchilla_table() and linear-space NLS fitting fully implemented. 159 tests passing.
+**Current focus:** Phase 5 complete (including gap closure 05-03). ScalingLawAnalyzer.predict() now correctly includes l_inf. 160 tests passing.
 
 ## Current Position
 
-Phase: 5 of 9 (Analysis and Fitting) -- COMPLETE
-Plan: 2/2 complete
-Status: ScalingAnalysis.chinchilla_table() added; all Phase 5 success criteria met (ANLZ-01, ANLZ-02, ANLZ-03). 159 tests passing.
-Last activity: 2026-02-17 -- 05-02 complete: chinchilla_table() and l_inf-aware loss prediction
+Phase: 5 of 9 (Analysis and Fitting) -- COMPLETE (3/3 plans, including gap closure)
+Plan: 3/3 complete
+Status: ScalingLawAnalyzer.predict() l_inf bug fixed; all 160 tests passing.
+Last activity: 2026-02-17 -- 05-03 complete: l_inf propagation fix in ScalingLawAnalyzer.predict()
 
 Progress: [█████░░░░░] 55%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 11
-- Average duration: ~7.5min
-- Total execution time: ~81min
+- Total plans completed: 12
+- Average duration: ~7min
+- Total execution time: ~83min
 
 **By Phase:**
 
@@ -32,11 +32,11 @@ Progress: [█████░░░░░] 55%
 | 02-dataset-and-loss | 2/2 | ~4min | ~2min |
 | 03-sweep-planning | 2/2 | ~5min | ~2.5min |
 | 04-training-engine | 2/2 | ~4min | ~2min |
-| 05-analysis-and-fitting | 2/2 | ~20min | ~10min |
+| 05-analysis-and-fitting | 3/3 | ~22min | ~7min |
 
 **Recent Trend:**
-- Last 3 plans: 04-02 (~2min), 05-01 (~18min), 05-02 (~2min)
-- Trend: 05-02 fast (straightforward TDD, no implementation complexity)
+- Last 3 plans: 05-01 (~18min), 05-02 (~2min), 05-03 (~2min)
+- Trend: Gap closure plans are fast (minimal, targeted TDD fixes)
 
 *Updated after each plan completion*
 
@@ -79,6 +79,7 @@ Recent decisions affecting current work:
 - Test x range for l_inf recovery must be small enough that l_inf is a significant fraction of y_min (logspace(1,5) not logspace(10,20))
 - chinchilla_table() defaults to np.logspace(18, 22, 9): 9 log-spaced budgets from 1e18 to 1e22
 - predict_optimal_size() l_inf propagation correct via PowerLawFit.predict() from Plan 01 (no extra code needed)
+- Use l_fit.get('l_inf') or 0 not l_fit.get('l_inf', 0): JSON null deserializes to Python None, and .get('l_inf', 0) returns None for null while 'or 0' correctly coerces None to 0
 
 ### Pending Todos
 
@@ -92,5 +93,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-17
-Stopped at: Completed 05-02-PLAN.md (chinchilla_table() and l_inf-aware loss prediction). 159 tests passing.
+Stopped at: Completed 05-03-PLAN.md (l_inf propagation fix in ScalingLawAnalyzer.predict()). 160 tests passing.
 Resume file: None
