@@ -52,10 +52,9 @@ def find_optimal(
         **kwargs: Additional configuration options for future phases.
 
     Returns:
-        list[dict]: When ``train=True`` and both ``dataset`` and ``loss_fn``
-            are provided, returns a list of result dicts (one per experiment)
-            with keys: ``experiment_id``, ``final_loss``, ``actual_flops``,
-            ``wall_time_seconds``, ``status``, and metadata.
+        Result: When ``train=True`` and both ``dataset`` and ``loss_fn``
+            are provided, returns a Result object with chinchilla_table(),
+            predict(), and plot() methods from the fitted scaling analysis.
         SweepPlan: When ``train=False``, or when ``dataset`` / ``loss_fn``
             is omitted, returns an inspectable experiment grid that the user
             can review before committing to training.
@@ -91,9 +90,14 @@ def find_optimal(
 
         # Phase 4: execute training if dataset + loss_fn both provided and train=True
         if train and dataset is not None and loss_fn is not None:
+            from pathlib import Path
             from flops_fit.trainer import TrainingRunner
+            from flops_fit.analyzer import ScalingLawAnalyzer
+            from flops_fit.visualizer import ScalingVisualizer
+            from flops_fit.result import Result
+
             runner = TrainingRunner(mode="local", output_dir=output_dir)
-            return runner.run_sweep_from_plan(
+            runner.run_sweep_from_plan(
                 plan=plan,
                 model_cls=model_cls,
                 size_param=model_size_param,
@@ -101,6 +105,26 @@ def find_optimal(
                 dataset_or_loader=dataset,
                 loss_fn=loss_fn,
                 resume=resume,
+            )
+
+            output_path = Path(output_dir)
+            analyzer = ScalingLawAnalyzer(
+                results_path=output_path / "results.json",
+                output_dir=output_path / "analysis",
+            )
+            analysis = analyzer.analyze()
+
+            visualizer = ScalingVisualizer(
+                results_path=output_path / "results.json",
+                analysis_path=output_path / "analysis" / "scaling_laws.json",
+                output_dir=output_path / "plots",
+            )
+
+            return Result(
+                analysis=analysis,
+                visualizer=visualizer,
+                output_dir=str(output_path),
+                compute_budgets=compute_budgets,
             )
 
         # Inspection mode: just return the plan
