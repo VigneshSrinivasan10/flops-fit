@@ -7,6 +7,7 @@ import torch.utils.data
 from torch.utils.data import Dataset
 
 from flops_fit import find_optimal
+from flops_fit.result import Result
 from flops_fit.sweep import SweepPlan
 
 
@@ -223,26 +224,38 @@ class TestFindOptimalTraining:
 
         return DS()
 
-    def test_find_optimal_executes_training_returns_results(
-        self, tmp_path, tiny_model_cls, tiny_dataset
+    @pytest.fixture
+    def training_budgets(self):
+        """5 log-spaced compute budgets for training tests.
+
+        Analyzer requires at least 2 distinct compute budget levels to fit
+        power laws. 5 budgets give robust fits for integration testing.
+        """
+        return [1e8, 3e8, 1e9, 3e9, 1e10]
+
+    def test_find_optimal_executes_training_returns_result(
+        self, tmp_path, tiny_model_cls, tiny_dataset, training_budgets
     ):
-        """find_optimal() returns list of result dicts when dataset+loss_fn provided."""
-        results = find_optimal(
+        """find_optimal() returns Result object when dataset+loss_fn provided."""
+        result = find_optimal(
             model_cls=tiny_model_cls,
             model_size_param="width",
             dataset=tiny_dataset,
             loss_fn=nn.MSELoss(),
-            compute_budgets=[1e8],
+            compute_budgets=training_budgets,
             train=True,
             output_dir=str(tmp_path),
         )
-        assert isinstance(results, list)
-        assert len(results) > 0
-        required_keys = {"experiment_id", "final_loss", "actual_flops", "wall_time_seconds", "status"}
-        for r in results:
-            assert required_keys.issubset(r.keys())
-            assert r["status"] == "completed"
-            assert not (r["final_loss"] != r["final_loss"])  # not NaN
+        assert isinstance(result, Result)
+        # All three API methods must work
+        table = result.chinchilla_table()
+        assert isinstance(table, str)
+        assert "Compute Budget" in table
+
+        pred = result.predict(1e18)
+        assert isinstance(pred, dict)
+        assert "optimal_params" in pred
+        assert pred["expected_loss"] > 0
 
     def test_find_optimal_train_false_returns_sweep_plan(
         self, tiny_model_cls, tiny_dataset
@@ -268,7 +281,7 @@ class TestFindOptimalTraining:
         assert isinstance(plan, SweepPlan)
 
     def test_find_optimal_writes_results_json(
-        self, tmp_path, tiny_model_cls, tiny_dataset
+        self, tmp_path, tiny_model_cls, tiny_dataset, training_budgets
     ):
         """find_optimal() with output_dir writes results.json after training."""
         find_optimal(
@@ -276,7 +289,7 @@ class TestFindOptimalTraining:
             model_size_param="width",
             dataset=tiny_dataset,
             loss_fn=nn.MSELoss(),
-            compute_budgets=[1e8],
+            compute_budgets=training_budgets,
             train=True,
             output_dir=str(tmp_path),
         )
@@ -288,32 +301,34 @@ class TestFindOptimalTraining:
         assert len(data) > 0
 
     def test_find_optimal_resume_skips_completed(
-        self, tmp_path, tiny_model_cls, tiny_dataset
+        self, tmp_path, tiny_model_cls, tiny_dataset, training_budgets
     ):
         """find_optimal() with resume=True skips experiments already in results.json."""
         import json
-        # Run once to get results
-        results1 = find_optimal(
+        # Run once — writes results.json
+        find_optimal(
             model_cls=tiny_model_cls,
             model_size_param="width",
             dataset=tiny_dataset,
             loss_fn=nn.MSELoss(),
-            compute_budgets=[1e8],
+            compute_budgets=training_budgets,
             train=True,
             output_dir=str(tmp_path),
         )
-        first_loss = results1[0]["final_loss"]
+        first_results = json.loads((tmp_path / "results.json").read_text())
+        first_loss = first_results[0]["final_loss"]
 
-        # Run again with resume=True — completed experiments must not be re-run
-        results2 = find_optimal(
+        # Run again with resume=True
+        find_optimal(
             model_cls=tiny_model_cls,
             model_size_param="width",
             dataset=tiny_dataset,
             loss_fn=nn.MSELoss(),
-            compute_budgets=[1e8],
+            compute_budgets=training_budgets,
             train=True,
             output_dir=str(tmp_path),
             resume=True,
         )
-        # First result must have the same loss (not re-computed)
-        assert results2[0]["final_loss"] == pytest.approx(first_loss)
+        resumed_results = json.loads((tmp_path / "results.json").read_text())
+        # Results file must contain same experiments (not doubled)
+        assert resumed_results[0]["final_loss"] == pytest.approx(first_loss)
