@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-02-16)
 
 ## Current Position
 
-Phase: 7 of 9 (GPT + TinyStories Example) -- COMPLETE (2/2 plans complete)
-Plan: 2/2 complete
-Status: examples/ package with GPT (num_params()) + TinyStoriesDataset; example scripts + mode param; 188 tests passing.
-Last activity: 2026-02-17 -- 07-02 complete: mode parameter + example scripts + test_examples.py
+Phase: 8 of 9 (ViT + CIFAR Example) -- IN PROGRESS (1/2 plans complete)
+Plan: 1/2 complete
+Status: VisionTransformer + vit_loss_fn in examples/vit.py; CIFAR10Dataset in examples/cifar.py; 7 exports from flops_fit.examples; 188 tests passing.
+Last activity: 2026-02-17 -- 08-01 complete: VisionTransformer + CIFAR10Dataset
 
-Progress: [████████░░] 78%
+Progress: [█████████░] 83%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 13
+- Total plans completed: 14
 - Average duration: ~7min
-- Total execution time: ~87min
+- Total execution time: ~89min
 
 **By Phase:**
 
@@ -35,6 +35,7 @@ Progress: [████████░░] 78%
 | 05-analysis-and-fitting | 3/3 | ~22min | ~7min |
 | 06-results-object-and-api-integration | 2/2 | ~6min | ~3min |
 | 07-gpt-and-tinystories-example | 2/3 | ~7min | ~3.5min |
+| 08-vit-and-cifar-example | 1/2 | ~2min | ~2min |
 
 **Recent Trend:**
 - Last 3 plans: 05-01 (~18min), 05-02 (~2min), 05-03 (~2min)
@@ -92,6 +93,10 @@ Recent decisions affecting current work:
 - mode='local' default in find_optimal() preserves all existing tests; example scripts default to mode='mock' with synthetic TensorDataset
 - gpt_loss_fn reshapes (B, T, V) logits to (B*T, V) and labels to (B*T,) for F.cross_entropy (GPT output tuple unpacking)
 - TinyStoriesDataset mock tests inject _dataset/_tokenizer directly rather than patching load_dataset
+- VisionTransformer.forward() returns logits DIRECTLY (not a tuple) -- structural contrast with GPT's (logits, loss) tuple
+- vit_loss_fn(logits, labels) has no tuple unpacking -- proves library handles both output patterns
+- Lazy torchvision import inside _prepare_data() only (matches TinyStories lazy HF import pattern)
+- norm_first=True (pre-norm transformer) for ViT -- triggers benign PyTorch UserWarning about enable_nested_tensor, not an error
 
 ### Pending Todos
 
@@ -105,5 +110,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-17
-Stopped at: Completed 07-02-PLAN.md (mode parameter + example scripts + test_examples.py). 188 tests passing.
+Stopped at: Completed 08-01-PLAN.md (VisionTransformer + CIFAR10Dataset). 188 tests passing.
 Resume file: None
