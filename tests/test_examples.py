@@ -212,3 +212,140 @@ class TestCLIWrapperExample:
         labels = torch.randint(0, VOCAB_SIZE, (B, T))
         loss = gpt_loss_fn((logits, None), labels)
         assert loss.ndim == 0  # scalar
+
+
+# ---------------------------------------------------------------------------
+# ViT contract
+# ---------------------------------------------------------------------------
+
+class TestViTContract:
+    """VisionTransformer in examples satisfies the flops_fit model contract."""
+
+    def test_num_params_method_exists(self):
+        """VisionTransformer.num_params() exists and returns a positive integer."""
+        from flops_fit.examples import VisionTransformer
+        model = VisionTransformer(embed_dim=64, num_layers=2, num_heads=8)
+        result = model.num_params()
+        assert isinstance(result, int)
+        assert result > 0
+
+    def test_num_params_increases_with_embed_dim(self):
+        """Larger embed_dim produces larger num_params()."""
+        from flops_fit.examples import VisionTransformer
+        small = VisionTransformer(embed_dim=64, num_layers=2, num_heads=8)
+        large = VisionTransformer(embed_dim=128, num_layers=2, num_heads=8)
+        assert large.num_params() > small.num_params()
+
+    def test_forward_returns_correct_shape(self):
+        """forward(batch) returns shape (B, num_classes)."""
+        from flops_fit.examples import VisionTransformer
+        model = VisionTransformer(embed_dim=64, num_layers=2, num_heads=8, num_classes=10)
+        x = torch.randn(2, 3, 32, 32)
+        output = model(x)
+        assert output.shape == (2, 10)
+
+    def test_forward_returns_tensor_not_tuple(self):
+        """VisionTransformer.forward() returns a Tensor directly, not a tuple.
+
+        This is the structural contrast with GPT, which returns (logits, loss).
+        """
+        from flops_fit.examples import VisionTransformer
+        model = VisionTransformer(embed_dim=64, num_layers=2, num_heads=8)
+        x = torch.randn(2, 3, 32, 32)
+        output = model(x)
+        assert type(output) is torch.Tensor
+
+
+# ---------------------------------------------------------------------------
+# ViT loss function
+# ---------------------------------------------------------------------------
+
+class TestViTLossFunction:
+    """vit_loss_fn accepts direct logits (no tuple unpacking)."""
+
+    def test_vit_loss_fn_accepts_direct_logits(self):
+        """vit_loss_fn(logits, labels) returns scalar given correct shapes."""
+        from flops_fit.examples import vit_loss_fn
+        logits = torch.randn(2, 10)
+        labels = torch.randint(0, 10, (2,))
+        loss = vit_loss_fn(logits, labels)
+        assert loss.ndim == 0
+
+    def test_vit_loss_fn_returns_scalar(self):
+        """vit_loss_fn output has ndim == 0 (scalar tensor)."""
+        from flops_fit.examples import vit_loss_fn
+        logits = torch.randn(4, 10)
+        labels = torch.randint(0, 10, (4,))
+        loss = vit_loss_fn(logits, labels)
+        assert loss.ndim == 0
+
+    def test_vit_loss_fn_positive(self):
+        """vit_loss_fn output is a positive scalar (cross-entropy >= 0)."""
+        from flops_fit.examples import vit_loss_fn
+        logits = torch.randn(4, 10)
+        labels = torch.randint(0, 10, (4,))
+        loss = vit_loss_fn(logits, labels)
+        assert loss.item() > 0
+
+
+# ---------------------------------------------------------------------------
+# CIFAR10Dataset: lazy loading
+# ---------------------------------------------------------------------------
+
+class TestCIFAR10DatasetLazyLoad:
+    """CIFAR10Dataset does not trigger network access at import or instantiation."""
+
+    def test_import_is_instant(self):
+        """CIFAR10Dataset imports without torchvision side effects."""
+        from flops_fit.examples import CIFAR10Dataset
+        assert CIFAR10Dataset is not None
+
+    def test_instantiation_does_not_load_data(self):
+        """CIFAR10Dataset() does not download or load data at __init__."""
+        from flops_fit.examples import CIFAR10Dataset
+        ds = CIFAR10Dataset(train=False, data_dir="/tmp/test")
+        assert ds._dataset is None
+
+    def test_attributes_stored(self):
+        """Constructor stores train and data_dir for later use."""
+        from flops_fit.examples import CIFAR10Dataset
+        ds = CIFAR10Dataset(train=False, data_dir="/tmp/test")
+        assert ds.train is False
+        assert ds.data_dir == "/tmp/test"
+
+
+# ---------------------------------------------------------------------------
+# ViT example script: smoke tests (no download, no GPU)
+# ---------------------------------------------------------------------------
+
+class TestViTExampleScript:
+    """Smoke tests for the ViT + CIFAR example script."""
+
+    def test_make_vit_factory_creates_vit_with_num_params(self):
+        """make_vit_factory returns a callable producing VisionTransformer with num_params() > 0."""
+        from flops_fit.examples.example_vit_cifar import make_vit_factory
+        factory = make_vit_factory(num_layers=2, num_heads=8)
+        model = factory(embed_dim=64)
+        assert hasattr(model, "num_params")
+        assert model.num_params() > 0
+
+    def test_make_synthetic_cifar_dataset_shape(self):
+        """_make_synthetic_cifar_dataset returns Dataset with correct shape."""
+        from flops_fit.examples.example_vit_cifar import _make_synthetic_cifar_dataset
+        ds = _make_synthetic_cifar_dataset(size=8)
+        assert len(ds) == 8
+        img, label = ds[0]
+        assert img.shape == (3, 32, 32)
+        assert isinstance(label.item(), int)
+
+    def test_vit_loss_fn_imported_correctly(self):
+        """vit_loss_fn from example_vit_cifar behaves identically to the one in flops_fit.examples.vit."""
+        from flops_fit.examples.example_vit_cifar import vit_loss_fn as example_loss_fn
+        from flops_fit.examples.vit import vit_loss_fn as vit_module_loss_fn
+        # Both should produce the same result for the same inputs
+        logits = torch.randn(3, 10)
+        labels = torch.randint(0, 10, (3,))
+        loss_a = example_loss_fn(logits, labels)
+        loss_b = vit_module_loss_fn(logits, labels)
+        assert torch.allclose(loss_a, loss_b)
+        assert loss_a.ndim == 0
