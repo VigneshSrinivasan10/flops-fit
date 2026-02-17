@@ -107,11 +107,11 @@ Plans:
   2. `result.plot()` produces scaling law and IsoFLOP visualizations (matplotlib figures)
   3. `result.predict(compute_budget)` returns optimal N, D, and expected loss for a specific budget
   4. `flops_fit.find_optimal()` orchestrates the full pipeline (plan, train, analyze) and returns the Result object
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 06-01: TBD
-- [ ] 06-02: TBD
+- [ ] 06-01-PLAN.md — TDD: Result dataclass (result.py) with chinchilla_table, predict, plot methods
+- [ ] 06-02-PLAN.md — Update find_optimal() to return Result after training; update test_api.py
 
 ### Phase 7: GPT + TinyStories Example
 **Goal**: Existing GPT code works as a library example demonstrating the full scaling law workflow
@@ -168,7 +168,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9
 | 3. Sweep Planning | 0/TBD | Not started | - |
 | 4. Training Engine | 0/TBD | Not started | - |
 | 5. Analysis and Fitting | 3/3 | Complete | 2026-02-17 |
-| 6. Results Object and API Integration | 0/TBD | Not started | - |
+| 6. Results Object and API Integration | 0/2 | Not started | - |
 | 7. GPT + TinyStories Example | 0/TBD | Not started | - |
 | 8. ViT + CIFAR Example | 0/TBD | Not started | - |
 | 9. Multi-GPU Data Parallelism | 0/TBD | Not started | - |
