@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-16)
 
 **Core value:** Given a compute budget, tell the user exactly how big their model should be and how much data to train on -- for their specific architecture and dataset.
-**Current focus:** Phase 8 complete. ViT + CIFAR example + 201 tests passing. Ready for Phase 9 (packaging and docs).
+**Current focus:** Phase 9 complete. Accelerate multi-GPU integration + 205 tests passing.
 
 ## Current Position
 
-Phase: 8 of 9 (ViT + CIFAR Example) -- COMPLETE (2/2 plans complete)
-Plan: 2/2 complete
-Status: example_vit_cifar.py runnable demo; 201 tests passing; Phase 8 fully complete.
-Last activity: 2026-02-17 -- 08-02 complete: example_vit_cifar.py + ViT test classes
+Phase: 9 of 9 (Multi-GPU Data Parallelism) -- COMPLETE (1/1 plans complete)
+Plan: 1/1 complete
+Status: Accelerate integrated into TrainingRunner; 205 tests passing; Phase 9 fully complete.
+Last activity: 2026-02-18 -- 09-01 complete: Accelerate integration + 4 new tests
 
-Progress: [█████████░] 89%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 14
-- Average duration: ~7min
-- Total execution time: ~89min
+- Total plans completed: 15
+- Average duration: ~6min
+- Total execution time: ~92min
 
 **By Phase:**
 
@@ -36,10 +36,11 @@ Progress: [█████████░] 89%
 | 06-results-object-and-api-integration | 2/2 | ~6min | ~3min |
 | 07-gpt-and-tinystories-example | 2/3 | ~7min | ~3.5min |
 | 08-vit-and-cifar-example | 2/2 | ~5min | ~2.5min |
+| 09-multi-gpu-data-parallelism | 1/1 | ~3min | ~3min |
 
 **Recent Trend:**
-- Last 3 plans: 05-01 (~18min), 05-02 (~2min), 05-03 (~2min)
-- Trend: Gap closure plans are fast (minimal, targeted TDD fixes)
+- Last 3 plans: 08-01 (~2.5min), 08-02 (~2.5min), 09-01 (~3min)
+- Trend: Focused integration plans execute quickly
 
 *Updated after each plan completion*
 
@@ -100,6 +101,10 @@ Recent decisions affecting current work:
 - make_vit_factory defaults num_layers=4 (not 6) for faster demo sweep
 - Labels use .long() explicitly in _make_synthetic_cifar_dataset -- PyTorch cross_entropy requires LongTensor
 - Architecture-agnostic find_optimal(): only model_cls, model_size_param (embed_dim vs d_model), and loss_fn differ between GPT and ViT demos
+- Accelerator created per-experiment inside _local_train() (not module/sweep level) to avoid stale DDP gradient bucket state
+- RANK env var check for sweep-level I/O gating (not accelerator.is_main_process) since Accelerator is scoped to _local_train
+- Loss gathering via accelerator.gather() for accurate multi-GPU loss reporting
+- accelerator.free_memory() cleanup before del model in _local_train
 
 ### Pending Todos
 
@@ -107,11 +112,10 @@ None yet.
 
 ### Blockers/Concerns
 
-- Accelerate version pin (>=1.0.0) not verified -- validate before adding to pyproject.toml
-- Hydra + torchrun conflict needs Compose API workaround -- relevant for Phase 9
+- Hydra + torchrun conflict needs Compose API workaround -- relevant if combining Hydra CLI with multi-GPU launch
 
 ## Session Continuity
 
-Last session: 2026-02-17
-Stopped at: Completed 08-02-PLAN.md (example_vit_cifar.py + ViT tests). 201 tests passing. Phase 8 complete.
+Last session: 2026-02-18
+Stopped at: Completed 09-01-PLAN.md (Accelerate integration). 205 tests passing. Phase 9 complete. All phases done.
 Resume file: None
