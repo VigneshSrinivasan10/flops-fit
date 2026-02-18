@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A public, open-source Python library for finding compute-optimal model size (N), data size (D), and predicted loss for any given compute budget. Users install flops-fit, pass their own model class, dataset, and loss function as Python objects, and the library orchestrates the sweep experiments, fits power laws, and returns Chinchilla-style predictions. Supports text and image data.
+A public, open-source Python library for finding compute-optimal model size (N), data size (D), and predicted loss for any given compute budget. Users install flops-fit, pass their own model class, dataset, and loss function as Python objects, and the library orchestrates the sweep experiments, fits power laws, and returns Chinchilla-style predictions. Supports text and image data. Scales to multiple GPUs via HuggingFace Accelerate with no user code changes.
 
 ## Core Value
 
@@ -35,24 +35,25 @@ result.plot()
 
 ### Validated
 
-- ✓ IsoFLOP sweep planning with configurable compute budgets — existing
-- ✓ Training execution with mock/local modes and resume support — existing
-- ✓ Power law fitting (N_opt, D_opt, L_opt vs compute) via scipy — existing
-- ✓ Scaling law visualization (IsoFLOP curves, scaling law plots) — existing
-- ✓ GPT model with u-mup parameterization for scaling experiments — existing
+- ✓ IsoFLOP sweep planning with configurable compute budgets — v1.0
+- ✓ Training execution with mock/local modes and resume support — v1.0
+- ✓ Power law fitting (N_opt, D_opt, L_opt vs compute) via scipy — v1.0
+- ✓ Scaling law visualization (IsoFLOP curves, scaling law plots) — v1.0
+- ✓ GPT model with u-mup parameterization for scaling experiments — v1.0
+- ✓ Python library API: `flops_fit.find_optimal()` takes model class, dataset, loss, compute budgets as Python objects — v1.0
+- ✓ Model interface: user passes a model class + size parameter name + kwargs; library creates models at different sizes — v1.0
+- ✓ Dataset interface: user passes a dataset object; library handles batching and iteration — v1.0
+- ✓ Loss interface: user passes a loss callable — v1.0
+- ✓ Results object: `.chinchilla_table()`, `.plot()`, `.predict(compute_budget)` — v1.0
+- ✓ Multi-GPU training support via data parallelism (HuggingFace Accelerate) — v1.0
+- ✓ GPT + TinyStories as a built-in example — v1.0
+- ✓ ViT + CIFAR as a second example proving image support — v1.0
+- ✓ Chinchilla table output: optimal N, D, and loss for a range of compute budgets — v1.0
+- ✓ Automatic outlier detection before fitting — v1.0
 
 ### Active
 
-- [ ] Python library API: `flops_fit.find_optimal()` takes model class, dataset, loss, compute budgets as Python objects
-- [ ] Model interface: user passes a model class + size parameter name + kwargs; library creates models at different sizes
-- [ ] Dataset interface: user passes a dataset object; library handles batching and iteration
-- [ ] Loss interface: user passes a loss callable
-- [ ] Results object: `.chinchilla_table()`, `.plot()`, `.predict(compute_budget)`
-- [ ] Multi-GPU training support via data parallelism
-- [ ] GPT + TinyStories as a built-in example (shows how to use the library)
-- [ ] ViT + CIFAR as a second example (proves image support)
-- [ ] Chinchilla table output: optimal N, D, and loss for a range of compute budgets
-- [ ] Automatic outlier detection before fitting
+*(None — all v1.0 requirements shipped. Define next milestone with `/gsd:new-milestone`.)*
 
 ### Out of Scope
 
@@ -65,14 +66,20 @@ result.plot()
 
 ## Context
 
-- Existing codebase is a working 4-stage pipeline (plan → train → analyze → visualize) hardcoded to GPT + TinyStories
-- Uses Hydra for CLI configuration, PyTorch for models, scipy for curve fitting, matplotlib for plots
-- The library API will be the primary interface; the existing CLI/Hydra becomes an example wrapper
-- Python 3.11, uv package manager, pytest + ruff for testing/linting
+**v1.0 shipped 2026-02-18.** ~7,300 LOC Python. 205 tests passing.
+
+- Core library: `src/flops_fit/` — api.py, trainer.py, sweep.py, analyzer.py, result.py, data.py, loss.py, model_factory.py, planner.py, visualizer.py
+- Examples: `src/flops_fit/examples/` — gpt.py, vit.py, example_gpt_tinystories.py, example_vit_cifar.py
+- Tech stack: Python 3.11, PyTorch, scipy, matplotlib, HuggingFace Accelerate, uv, pytest
+
+**Known issues / tech debt:**
+- Accelerate version pin (>=1.0.0) not verified against latest — validate before next release
+- Hydra + torchrun conflict needs Compose API workaround — relevant for any future CLI work
+- Phases 3 and 4 are implemented but ROADMAP checkboxes were not updated during execution
 
 ## Constraints
 
-- **Stack**: Python 3.11, PyTorch, scipy, matplotlib
+- **Stack**: Python 3.11, PyTorch, scipy, matplotlib, HuggingFace Accelerate
 - **Modalities**: Text and image data only for v1
 - **Interface**: Python-first — users pass Python objects, not config file paths
 - **Model contract**: Model class must accept a size parameter and expose `num_params()`
@@ -81,12 +88,16 @@ result.plot()
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Library-first, not CLI-first | Users embed flops-fit in their codebase, not the other way around | Decided |
-| Python objects as input, not YAML/config | More Pythonic; config file is optional convenience, not primary API | Decided |
-| User provides model class + size param name | Library varies the size param to create models at different scales | Decided |
-| Multi-GPU via data parallelism | Covers most scaling law experiments without distributed complexity | Pending |
-| Existing GPT + CLI becomes example, not core | Clean separation — library core has no hardcoded architectures | Decided |
-| Text + image modalities for v1 | Covers most ML research; other modalities work if user handles data | Decided |
+| Library-first, not CLI-first | Users embed flops-fit in their codebase, not the other way around | ✓ Good |
+| Python objects as input, not YAML/config | More Pythonic; config file is optional convenience, not primary API | ✓ Good |
+| User provides model class + size param name | Library varies the size param to create models at different scales | ✓ Good |
+| Duck typing for model contract (no base class) | Easier adoption; probe-based validation catches missing methods early | ✓ Good |
+| Linear-space NLS over log-space regression | Unbiased when loss has additive baseline (irreducible entropy) | ✓ Good |
+| train=True default; mode='local' default | Training is the happy path; mode param preserves all existing tests | ✓ Good |
+| Accelerator created per-experiment in _local_train | Avoids stale DDP gradient bucket state across different architectures | ✓ Good |
+| Multi-GPU via Accelerate, activated by launch method | No user code changes; python script.py == single GPU, accelerate launch == multi | ✓ Good |
+| Existing GPT + CLI becomes example, not core | Clean separation — library core has no hardcoded architectures | ✓ Good |
+| Text + image modalities for v1 | Covers most ML research; other modalities work if user handles data | ✓ Good |
 
 ---
-*Last updated: 2026-02-16 after pivot to library-first approach*
+*Last updated: 2026-02-18 after v1.0 milestone*
