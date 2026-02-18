@@ -24,12 +24,14 @@ from pathlib import Path
 from typing import Callable, Literal
 import json
 import logging
+import os
 import time
 
 import hydra
 from omegaconf import DictConfig
 import numpy as np
 import torch
+from accelerate import Accelerator
 from tqdm import tqdm
 
 from flops_fit.model_factory import create_model
@@ -286,11 +288,17 @@ class TrainingRunner:
         Returns:
             (final_loss, actual_flops, wall_time_seconds)
         """
+        accelerator = Accelerator()
+
         model = create_model(model_cls, size_param, experiment.size_param_value, model_kwargs)
         dataloader = wrap_dataset(dataset_or_loader, batch_size=batch_size)
-        device = _get_device()
-        model.to(device)
         optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
+
+        # Accelerate handles device placement via prepare()
+        model, optimizer, dataloader = accelerator.prepare(model, optimizer, dataloader)
+
+        # Access num_params() on the unwrapped model (DDP wrapping hides custom methods)
+        unwrapped_model = accelerator.unwrap_model(model)
 
         start_time = time.time()
         model.train()
@@ -306,27 +314,27 @@ class TrainingRunner:
                     inputs = batch
                     targets = batch
 
-                inputs = inputs.to(device)
-                targets = targets.to(device)
-
                 outputs = model(inputs)
                 loss = loss_fn(outputs, targets)
 
                 optimizer.zero_grad()
-                loss.backward()
+                accelerator.backward(loss)
                 optimizer.step()
 
-                total_loss += loss.item()
+                # Gather loss across processes for accurate multi-GPU reporting
+                loss_val = accelerator.gather(loss.detach().unsqueeze(0)).mean().item()
+                total_loss += loss_val
                 total_batches += 1
 
         wall_time = time.time() - start_time
         final_loss = total_loss / total_batches if total_batches > 0 else float("nan")
 
         # Compute actual FLOPs: C = 6 * N * D (Chinchilla formula)
-        actual_n = model.num_params()
+        actual_n = unwrapped_model.num_params()
         actual_flops = 6 * actual_n * experiment.num_tokens
 
         # Cleanup
+        accelerator.free_memory()
         del model
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
@@ -444,7 +452,10 @@ class TrainingRunner:
         remaining = [e for e in plan.experiments if e.experiment_id not in completed]
         logger.info(f"Running {len(remaining)} experiments...")
 
-        for experiment in tqdm(remaining, desc="Training"):
+        is_main_process = int(os.environ.get("RANK", "0")) == 0
+        iterator = tqdm(remaining, desc="Training") if is_main_process else remaining
+
+        for experiment in iterator:
             result = self.run_experiment_from_sweep(
                 experiment=experiment,
                 model_cls=model_cls,
@@ -456,9 +467,10 @@ class TrainingRunner:
             )
             results.append(result.to_dict())
 
-            # Save incrementally
-            with open(results_path, "w") as f:
-                json.dump(results, f, indent=2)
+            # Save incrementally (only main process writes to avoid conflicts)
+            if is_main_process:
+                with open(results_path, "w") as f:
+                    json.dump(results, f, indent=2)
 
         logger.info(f"Completed {len(results)} total experiments")
         return results
