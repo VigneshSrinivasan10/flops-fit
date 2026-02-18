@@ -150,11 +150,10 @@ Plans:
   1. Library supports multi-GPU data parallelism via HuggingFace Accelerate
   2. Multi-GPU training produces the same loss values as single-GPU (within numerical tolerance)
   3. User does not need to modify their model class or dataset to use multi-GPU
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 09-01: TBD
-- [ ] 09-02: TBD
+- [ ] 09-01-PLAN.md — Integrate Accelerate into TrainingRunner with tests
 
 ## Progress
 
@@ -171,4 +170,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9
 | 6. Results Object and API Integration | 2/2 | Complete | 2026-02-17 |
 | 7. GPT + TinyStories Example | 2/2 | Complete | 2026-02-17 |
 | 8. ViT + CIFAR Example | 0/2 | Not started | - |
-| 9. Multi-GPU Data Parallelism | 0/TBD | Not started | - |
+| 9. Multi-GPU Data Parallelism | 0/1 | Not started | - |
