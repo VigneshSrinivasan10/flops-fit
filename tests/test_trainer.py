@@ -8,60 +8,67 @@ import numpy as np
 from flops_fit.trainer import TrainingRunner, TrainingResult
 
 
+# --- Module-level fixtures shared across test classes ---
+
+
+import torch
+import torch.nn as nn
+from torch.utils.data import Dataset
+
+
+class _TinyModel(nn.Module):
+    def __init__(self, width=8):
+        super().__init__()
+        self.linear = nn.Linear(4, 1)
+        self.width = width
+
+    def forward(self, x):
+        return self.linear(x)
+
+    def num_params(self):
+        return sum(p.numel() for p in self.parameters())
+
+
+class _TinyDataset(Dataset):
+    def __init__(self, n=64):
+        self.x = torch.randn(n, 4)
+        self.y = torch.randn(n, 1)
+
+    def __len__(self):
+        return len(self.x)
+
+    def __getitem__(self, idx):
+        return self.x[idx], self.y[idx]
+
+
+@pytest.fixture
+def tiny_model_cls():
+    """A minimal nn.Module that satisfies the flops_fit contract."""
+    return _TinyModel
+
+
+@pytest.fixture
+def tiny_dataset():
+    """A minimal Dataset returning (input, target) pairs."""
+    return _TinyDataset()
+
+
+@pytest.fixture
+def tiny_experiment():
+    """A minimal Experiment dataclass for testing."""
+    from flops_fit.sweep import Experiment
+    return Experiment(
+        experiment_id="exp_0000",
+        compute_budget=1e10,
+        size_param_value=8,
+        num_params=5,  # approximate; overridden by actual model
+        num_tokens=1000,
+        tokens_per_param=200.0,
+    )
+
+
 class TestLocalTraining:
     """Tests for TrainingRunner mode='local' with real PyTorch."""
-
-    @pytest.fixture
-    def tiny_model_cls(self):
-        """A minimal nn.Module that satisfies the flops_fit contract."""
-        import torch
-        import torch.nn as nn
-
-        class TinyModel(nn.Module):
-            def __init__(self, width=8):
-                super().__init__()
-                self.linear = nn.Linear(4, 1)
-                self.width = width
-
-            def forward(self, x):
-                return self.linear(x)
-
-            def num_params(self):
-                return sum(p.numel() for p in self.parameters())
-
-        return TinyModel
-
-    @pytest.fixture
-    def tiny_dataset(self):
-        """A minimal Dataset returning (input, target) pairs."""
-        import torch
-        from torch.utils.data import Dataset
-
-        class TinyDataset(Dataset):
-            def __init__(self, n=64):
-                self.x = torch.randn(n, 4)
-                self.y = torch.randn(n, 1)
-
-            def __len__(self):
-                return len(self.x)
-
-            def __getitem__(self, idx):
-                return self.x[idx], self.y[idx]
-
-        return TinyDataset()
-
-    @pytest.fixture
-    def tiny_experiment(self):
-        """A minimal Experiment dataclass for testing."""
-        from flops_fit.sweep import Experiment
-        return Experiment(
-            experiment_id="exp_0000",
-            compute_budget=1e10,
-            size_param_value=8,
-            num_params=5,  # approximate; overridden by actual model
-            num_tokens=1000,
-            tokens_per_param=200.0,
-        )
 
     def test_local_train_returns_loss_flops_walltime(
         self, tmp_path, tiny_model_cls, tiny_dataset, tiny_experiment
@@ -394,3 +401,114 @@ class TestTrainingResult:
             "timestamp", "status", "error_message",
         }
         assert expected_keys == set(d.keys())
+
+
+class TestAccelerateIntegration:
+    """Tests verifying Accelerate integration in single-process mode."""
+
+    def test_unwrap_model_num_params_correct(
+        self, tmp_path, tiny_model_cls, tiny_dataset, tiny_experiment
+    ):
+        """unwrap_model().num_params() returns correct value after Accelerate prepare()."""
+        runner = TrainingRunner(mode="local", output_dir=tmp_path)
+        _, actual_flops, _ = runner._local_train(
+            experiment=tiny_experiment,
+            model_cls=tiny_model_cls,
+            size_param="width",
+            model_kwargs={},
+            dataset_or_loader=tiny_dataset,
+            loss_fn=torch.nn.MSELoss(),
+        )
+        # Verify FLOPs = 6 * N * D, proving unwrap_model().num_params() is correct
+        model = tiny_model_cls(width=tiny_experiment.size_param_value)
+        expected_n = model.num_params()
+        expected_flops = 6 * expected_n * tiny_experiment.num_tokens
+        assert actual_flops == pytest.approx(expected_flops, rel=0.01)
+
+    def test_local_train_works_on_cpu_without_cuda(
+        self, tmp_path, tiny_model_cls, tiny_dataset, tiny_experiment
+    ):
+        """_local_train() completes on CPU (Accelerate handles device placement)."""
+        runner = TrainingRunner(mode="local", output_dir=tmp_path)
+        loss, actual_flops, wall_time = runner._local_train(
+            experiment=tiny_experiment,
+            model_cls=tiny_model_cls,
+            size_param="width",
+            model_kwargs={},
+            dataset_or_loader=tiny_dataset,
+            loss_fn=torch.nn.MSELoss(),
+        )
+        # Proves Accelerate falls back to CPU gracefully
+        assert isinstance(loss, float)
+        assert not (loss != loss)  # not NaN
+        assert actual_flops > 0
+        assert wall_time > 0
+
+    def test_sweep_results_json_written_once(
+        self, tmp_path, tiny_model_cls, tiny_dataset
+    ):
+        """run_sweep_from_plan() writes results.json with no duplicate experiment_ids."""
+        from flops_fit.sweep import Experiment, SweepPlan
+
+        experiments = [
+            Experiment(
+                experiment_id=f"accel_{i:04d}",
+                compute_budget=1e10,
+                size_param_value=8,
+                num_params=5,
+                num_tokens=100,
+                tokens_per_param=20.0,
+            )
+            for i in range(2)
+        ]
+        plan = SweepPlan(
+            experiments=experiments,
+            model_cls_name="TinyModel",
+            size_param="width",
+            compute_budgets=[1e10],
+        )
+
+        runner = TrainingRunner(mode="local", output_dir=tmp_path)
+        results = runner.run_sweep_from_plan(
+            plan=plan,
+            model_cls=tiny_model_cls,
+            size_param="width",
+            model_kwargs={},
+            dataset_or_loader=tiny_dataset,
+            loss_fn=torch.nn.MSELoss(),
+            resume=False,
+        )
+
+        # Verify results.json written with exactly 2 results
+        results_path = tmp_path / "results.json"
+        assert results_path.exists()
+        with open(results_path) as f:
+            saved = json.load(f)
+        assert len(saved) == 2
+        # No duplicate experiment IDs
+        ids = [r["experiment_id"] for r in saved]
+        assert len(ids) == len(set(ids))
+
+    def test_accelerate_backward_compatibility(
+        self, tmp_path, tiny_model_cls, tiny_dataset, tiny_experiment
+    ):
+        """Return types and value ranges unchanged after Accelerate integration."""
+        runner = TrainingRunner(mode="local", output_dir=tmp_path)
+        loss, actual_flops, wall_time = runner._local_train(
+            experiment=tiny_experiment,
+            model_cls=tiny_model_cls,
+            size_param="width",
+            model_kwargs={},
+            dataset_or_loader=tiny_dataset,
+            loss_fn=torch.nn.MSELoss(),
+        )
+        # Same types as pre-Accelerate
+        assert isinstance(loss, float)
+        assert isinstance(actual_flops, float)
+        assert isinstance(wall_time, float)
+        # Same value constraints
+        assert not (loss != loss)  # not NaN
+        assert loss > 0
+        assert actual_flops > 0
+        assert actual_flops == 6 * _TinyModel(width=8).num_params() * 1000
+        assert wall_time > 0
